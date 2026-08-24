@@ -25,16 +25,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     let detail = `Request failed (${response.status})`;
+    const contentType = response.headers.get("content-type") || "";
     try {
-      const payload = await response.json();
-      if (typeof payload.detail === "string") detail = payload.detail;
-      else if (Array.isArray(payload.detail)) {
-        detail = payload.detail.map((item: { msg?: string }) => item.msg || "Invalid field").join("; ");
+      if (contentType.includes("application/json")) {
+        const payload = await response.json();
+        if (typeof payload.detail === "string") detail = payload.detail;
+        else if (Array.isArray(payload.detail)) {
+          detail = payload.detail.map((item: { msg?: string }) => item.msg || "Invalid field").join("; ");
+        }
+      } else {
+        detail =
+          "Backend API is not deployed. On Vercel, set Root Directory to fake-social-media-detector (not frontend) and redeploy.";
       }
     } catch {
       /* keep default */
     }
     throw new Error(detail);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      "Backend API is not deployed. On Vercel, set Root Directory to fake-social-media-detector (not frontend) and redeploy.",
+    );
   }
   return response.json() as Promise<T>;
 }

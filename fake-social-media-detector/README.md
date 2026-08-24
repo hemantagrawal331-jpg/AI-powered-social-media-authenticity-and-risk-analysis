@@ -106,42 +106,21 @@ Optional: copy `.env.example` values. The Vite dev server proxies `/api` to port
 
 ## Deploy on Vercel
 
-This stack is **not** a Node `index.js` app. Deploy **two Vercel projects** from the same GitHub repo.
+The live UI at a `*.vercel.app` URL is only half the app. If **Launch Demo** fails, Vercel is serving the React frontend but **not** FastAPI. `/api/samples` then returns HTML instead of JSON.
 
-### 1. Backend
+Use **one Vercel project** that builds the UI and the API together.
 
-1. Push the repo to GitHub.
-2. In Vercel: **Add New Project** → select the repo.
-3. Set **Root Directory** to `backend`.
-4. Vercel will use `backend/vercel.json` and `backend/requirements.txt`.
-5. After deploy, copy the URL, for example `https://fakeguard-api.vercel.app`.
-6. Confirm `https://fakeguard-api.vercel.app/api/health` returns `{"status":"ok",...}`.
+1. Push these files to GitHub.
+2. In Vercel → Project → **Settings → General → Root Directory**.
+3. Set Root Directory to `fake-social-media-detector` (**not** `frontend`, **not** `backend`).
+   Your GitHub repo root is `Sih`, so this subdirectory is required.
+4. Framework preset: **Other**. Build command and output are in `vercel.json`.
+5. Redeploy.
+6. Check `https://your-app.vercel.app/api/health` — it must return JSON like `{"status":"ok",...}`, not the FakeGuard homepage.
 
-Optional env vars on the backend project:
+You do **not** need `VITE_API_URL` for this setup. The browser calls `/api` on the same domain.
 
-```text
-CORS_ORIGINS=https://your-frontend.vercel.app
-```
-
-`*.vercel.app` origins are already allowed.
-
-SQLite history on Vercel is ephemeral (serverless `/tmp`). Analysis still works; stored history may reset between requests.
-
-### 2. Frontend
-
-1. **Add New Project** again from the same repo.
-2. Set **Root Directory** to `frontend`.
-3. Add this environment variable **before** the first build:
-
-```text
-VITE_API_URL=https://fakeguard-api.vercel.app
-```
-
-Use your real backend URL (no trailing slash).
-
-4. Deploy. Open the frontend URL and click **Launch Demo**.
-
-`frontend/vercel.json` handles Vite SPA routing.
+SQLite history on Vercel is ephemeral (serverless `/tmp`). Analysis still works.
 
 ---
 
