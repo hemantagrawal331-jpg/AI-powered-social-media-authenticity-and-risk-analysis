@@ -1,0 +1,19 @@
+{
+  "username": "example123",
+  "platform": "instagram",
+  "display_name": "Example User",
+  "profile_url": "https://instagram.com/example123",
+  "followers": 25000,
+  "following": 4800,
+  "posts": 45,
+  "account_age_days": 18,
+  "bio": "Free followers!!! Click link",
+  "verified": false,
+  "has_profile_picture": true,
+  "external_links": 1,
+  "average_likes": 80,
+  "average_comments": 3,
+  "posting_frequency_per_week": 14,
+  "captions": ["Free followers click now", "Free followers click the link"],
+  "hashtags": ["freefollowers", "ad"]
+}

@@ -104,6 +104,47 @@ Optional: copy `.env.example` values. The Vite dev server proxies `/api` to port
 
 ---
 
+## Deploy on Vercel
+
+This stack is **not** a Node `index.js` app. Deploy **two Vercel projects** from the same GitHub repo.
+
+### 1. Backend
+
+1. Push the repo to GitHub.
+2. In Vercel: **Add New Project** → select the repo.
+3. Set **Root Directory** to `backend`.
+4. Vercel will use `backend/vercel.json` and `backend/requirements.txt`.
+5. After deploy, copy the URL, for example `https://fakeguard-api.vercel.app`.
+6. Confirm `https://fakeguard-api.vercel.app/api/health` returns `{"status":"ok",...}`.
+
+Optional env vars on the backend project:
+
+```text
+CORS_ORIGINS=https://your-frontend.vercel.app
+```
+
+`*.vercel.app` origins are already allowed.
+
+SQLite history on Vercel is ephemeral (serverless `/tmp`). Analysis still works; stored history may reset between requests.
+
+### 2. Frontend
+
+1. **Add New Project** again from the same repo.
+2. Set **Root Directory** to `frontend`.
+3. Add this environment variable **before** the first build:
+
+```text
+VITE_API_URL=https://fakeguard-api.vercel.app
+```
+
+Use your real backend URL (no trailing slash).
+
+4. Deploy. Open the frontend URL and click **Launch Demo**.
+
+`frontend/vercel.json` handles Vite SPA routing.
+
+---
+
 ## Demo instructions
 
 1. Start backend, then frontend.

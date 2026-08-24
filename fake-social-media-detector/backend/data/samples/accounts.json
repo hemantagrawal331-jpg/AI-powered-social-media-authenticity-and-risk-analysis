@@ -1,0 +1,324 @@
+[
+  {
+    "id": "genuine-personal",
+    "label": "Genuine Personal Account",
+    "category": "genuine",
+    "description": "Long-lived student profile with ordinary engagement and personal captions.",
+    "profile": {
+      "username": "priya.sharma.22",
+      "platform": "instagram",
+      "display_name": "Priya Sharma",
+      "profile_url": "https://instagram.com/priya.sharma.22",
+      "followers": 487,
+      "following": 512,
+      "posts": 89,
+      "account_age_days": 1450,
+      "bio": "Coffee, books, and weekend hikes. Delhi | Architecture student",
+      "verified": false,
+      "has_profile_picture": true,
+      "external_links": 0,
+      "profile_fields_completed": 7,
+      "total_profile_fields": 8,
+      "average_likes": 42,
+      "average_comments": 6,
+      "average_shares": 2,
+      "posting_frequency_per_week": 1.2,
+      "has_external_link": false,
+      "captions": [
+        "Monsoon walks around Lodhi Garden",
+        "Studio crit day — model finally standing",
+        "Sunday filter coffee and a new sketchbook"
+      ],
+      "hashtags": ["delhi", "architecture", "weekend"],
+      "recent_activity": [
+        {"date": "2026-08-12", "event": "Posted studio photos", "magnitude": 12}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-07-01", "delta": 14}
+      ],
+      "following_growth_events": [
+        {"date": "2026-07-04", "delta": 8}
+      ],
+      "engagement_history": [
+        {"date": "2026-07-01", "likes": 38, "comments": 5, "followers": 460},
+        {"date": "2026-07-15", "likes": 44, "comments": 7, "followers": 471},
+        {"date": "2026-08-01", "likes": 41, "comments": 6, "followers": 480},
+        {"date": "2026-08-18", "likes": 46, "comments": 8, "followers": 487}
+      ]
+    }
+  },
+  {
+    "id": "fake-bot",
+    "label": "Fake / Bot Account",
+    "category": "bot",
+    "description": "Auto-generated username, empty bio, mass following, almost no engagement.",
+    "profile": {
+      "username": "user83929183",
+      "platform": "twitter",
+      "display_name": "",
+      "profile_url": "https://x.com/user83929183",
+      "followers": 12500,
+      "following": 8200,
+      "posts": 8,
+      "account_age_days": 12,
+      "bio": "",
+      "verified": false,
+      "has_profile_picture": false,
+      "external_links": 0,
+      "profile_fields_completed": 1,
+      "total_profile_fields": 8,
+      "average_likes": 3,
+      "average_comments": 0,
+      "average_shares": 0,
+      "posting_frequency_per_week": 18,
+      "has_external_link": false,
+      "captions": ["follow", "follow", "nice", "follow"],
+      "hashtags": ["followback", "likeforlike", "followback"],
+      "recent_activity": [
+        {"date": "2026-08-16", "event": "Burst of short replies", "magnitude": 80}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-08-15", "delta": 940}
+      ],
+      "following_growth_events": [
+        {"date": "2026-08-14", "delta": 860}
+      ],
+      "engagement_history": [
+        {"date": "2026-08-14", "likes": 2, "comments": 0, "followers": 2100},
+        {"date": "2026-08-16", "likes": 4, "comments": 0, "followers": 7800},
+        {"date": "2026-08-20", "likes": 3, "comments": 0, "followers": 12500}
+      ]
+    }
+  },
+  {
+    "id": "spam-account",
+    "label": "Spam Account",
+    "category": "spam",
+    "description": "Repetitive promotional captions and follow-for-follow language.",
+    "profile": {
+      "username": "official_deals_hub",
+      "platform": "instagram",
+      "display_name": "Deals Hub Official",
+      "profile_url": "https://instagram.com/official_deals_hub",
+      "followers": 3400,
+      "following": 7500,
+      "posts": 210,
+      "account_age_days": 64,
+      "bio": "CLICK HERE!!! Free followers and likes. Link in bio. Limited time!!! DM for promo",
+      "verified": false,
+      "has_profile_picture": true,
+      "external_links": 3,
+      "profile_fields_completed": 5,
+      "total_profile_fields": 8,
+      "average_likes": 18,
+      "average_comments": 1,
+      "average_shares": 0,
+      "posting_frequency_per_week": 28,
+      "has_external_link": true,
+      "captions": [
+        "Free followers today click the link",
+        "Free followers today click the link now",
+        "DM me for promo free followers",
+        "Limited time free followers click"
+      ],
+      "hashtags": ["freefollowers", "ad", "followback", "freefollowers", "ad"],
+      "recent_activity": [
+        {"date": "2026-08-10", "event": "Repeated promotional posts detected", "magnitude": 70}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-08-08", "delta": 420}
+      ],
+      "following_growth_events": [
+        {"date": "2026-08-07", "delta": 510}
+      ],
+      "engagement_history": [
+        {"date": "2026-08-01", "likes": 22, "comments": 1, "followers": 2900},
+        {"date": "2026-08-10", "likes": 16, "comments": 1, "followers": 3200},
+        {"date": "2026-08-20", "likes": 18, "comments": 1, "followers": 3400}
+      ]
+    }
+  },
+  {
+    "id": "influencer",
+    "label": "Influencer / Creator",
+    "category": "influencer",
+    "description": "Verified creator with mature audience and healthy engagement.",
+    "profile": {
+      "username": "aanya.travels",
+      "platform": "instagram",
+      "display_name": "Aanya Mehta",
+      "profile_url": "https://instagram.com/aanya.travels",
+      "followers": 185000,
+      "following": 890,
+      "posts": 420,
+      "account_age_days": 2100,
+      "bio": "Travel photographer | 40 countries | collab: hello@aanyatravels.com",
+      "verified": true,
+      "has_profile_picture": true,
+      "external_links": 1,
+      "profile_fields_completed": 8,
+      "total_profile_fields": 8,
+      "average_likes": 12400,
+      "average_comments": 340,
+      "average_shares": 210,
+      "posting_frequency_per_week": 3.4,
+      "has_external_link": true,
+      "captions": [
+        "Sunrise over the Atlas — shot on film",
+        "A quiet train window in Kyoto",
+        "Packing notes from the Balkans trip"
+      ],
+      "hashtags": ["travel", "filmphotography", "kyoto"],
+      "recent_activity": [
+        {"date": "2026-08-11", "event": "Published travel series", "magnitude": 30}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-08-02", "delta": 1200}
+      ],
+      "following_growth_events": [
+        {"date": "2026-06-12", "delta": 6}
+      ],
+      "engagement_history": [
+        {"date": "2026-07-01", "likes": 11800, "comments": 310, "followers": 181000},
+        {"date": "2026-07-20", "likes": 12600, "comments": 355, "followers": 183200},
+        {"date": "2026-08-10", "likes": 13100, "comments": 362, "followers": 185000}
+      ]
+    }
+  },
+  {
+    "id": "scam-giveaway",
+    "label": "Scam / Giveaway Account",
+    "category": "scam",
+    "description": "New account promoting a crypto giveaway with tiny engagement.",
+    "profile": {
+      "username": "crypto_giveaway_9283",
+      "platform": "twitter",
+      "display_name": "Official Crypto Giveaway",
+      "profile_url": "https://x.com/crypto_giveaway_9283",
+      "followers": 25400,
+      "following": 4800,
+      "posts": 45,
+      "account_age_days": 18,
+      "bio": "FREE BITCOIN GIVEAWAY! Send 0.1 ETH get 2 ETH back! Official Elon giveaway. Act now!!! Click the link",
+      "verified": false,
+      "has_profile_picture": true,
+      "external_links": 2,
+      "profile_fields_completed": 4,
+      "total_profile_fields": 8,
+      "average_likes": 80,
+      "average_comments": 3,
+      "average_shares": 1,
+      "posting_frequency_per_week": 22,
+      "has_external_link": true,
+      "captions": [
+        "Free bitcoin giveaway send ETH get double back",
+        "Official giveaway limited time send now",
+        "Free bitcoin giveaway send ETH get double back today",
+        "Act now limited slots click the link"
+      ],
+      "hashtags": ["giveaway", "crypto", "bitcoin", "giveaway", "crypto"],
+      "recent_activity": [
+        {"date": "2026-08-07", "event": "Repeated promotional posts detected", "magnitude": 90}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-08-05", "delta": 6100}
+      ],
+      "following_growth_events": [
+        {"date": "2026-08-03", "delta": 850}
+      ],
+      "engagement_history": [
+        {"date": "2026-08-04", "likes": 40, "comments": 1, "followers": 4200},
+        {"date": "2026-08-08", "likes": 1200, "comments": 4, "followers": 18000},
+        {"date": "2026-08-12", "likes": 75, "comments": 3, "followers": 24000},
+        {"date": "2026-08-20", "likes": 80, "comments": 3, "followers": 25400}
+      ]
+    }
+  },
+  {
+    "id": "impersonation",
+    "label": "Possible Impersonation",
+    "category": "impersonation",
+    "description": "Unverified lookalike of a well-known public figure.",
+    "profile": {
+      "username": "virat.kohli.officiall",
+      "platform": "instagram",
+      "display_name": "Virat Kohli",
+      "profile_url": "https://instagram.com/virat.kohli.officiall",
+      "followers": 92000,
+      "following": 42,
+      "posts": 11,
+      "account_age_days": 27,
+      "bio": "Official account. Real Virat. Not fake. DM for collab and giveaway",
+      "verified": false,
+      "has_profile_picture": true,
+      "external_links": 1,
+      "profile_fields_completed": 5,
+      "total_profile_fields": 8,
+      "average_likes": 210,
+      "average_comments": 8,
+      "average_shares": 2,
+      "posting_frequency_per_week": 6,
+      "has_external_link": true,
+      "captions": ["Thank you fans", "Official merch link in bio", "Giveaway soon"],
+      "hashtags": ["cricket", "giveaway"],
+      "recent_activity": [
+        {"date": "2026-08-09", "event": "Posted merch link", "magnitude": 40}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-08-06", "delta": 12000}
+      ],
+      "following_growth_events": [],
+      "engagement_history": [
+        {"date": "2026-08-04", "likes": 180, "comments": 6, "followers": 24000},
+        {"date": "2026-08-14", "likes": 230, "comments": 9, "followers": 92000}
+      ]
+    }
+  },
+  {
+    "id": "business-brand",
+    "label": "Business / Brand",
+    "category": "business",
+    "description": "Local cafe brand with complete profile and typical small-business reach.",
+    "profile": {
+      "username": "greenleaf.cafe",
+      "platform": "instagram",
+      "display_name": "Greenleaf Cafe",
+      "profile_url": "https://instagram.com/greenleaf.cafe",
+      "followers": 6400,
+      "following": 310,
+      "posts": 240,
+      "account_age_days": 980,
+      "bio": "Neighbourhood cafe in Pune. Fresh bakes daily. Hours 8am–8pm. Order via our store link.",
+      "verified": false,
+      "has_profile_picture": true,
+      "external_links": 1,
+      "profile_fields_completed": 8,
+      "total_profile_fields": 8,
+      "average_likes": 210,
+      "average_comments": 18,
+      "average_shares": 9,
+      "posting_frequency_per_week": 4,
+      "has_external_link": true,
+      "captions": [
+        "Cardamom bun batch just out of the oven",
+        "Rainy afternoon pour-overs",
+        "Weekend brunch seats — walk-ins welcome"
+      ],
+      "hashtags": ["pune", "cafe", "bakery"],
+      "recent_activity": [
+        {"date": "2026-08-13", "event": "Posted menu special", "magnitude": 15}
+      ],
+      "follower_growth_events": [
+        {"date": "2026-07-20", "delta": 80}
+      ],
+      "following_growth_events": [
+        {"date": "2026-05-02", "delta": 4}
+      ],
+      "engagement_history": [
+        {"date": "2026-07-10", "likes": 198, "comments": 16, "followers": 6200},
+        {"date": "2026-08-01", "likes": 220, "comments": 19, "followers": 6340},
+        {"date": "2026-08-18", "likes": 214, "comments": 18, "followers": 6400}
+      ]
+    }
+  }
+]

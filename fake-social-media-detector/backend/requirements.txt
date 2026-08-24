@@ -1,3 +1,9 @@
-# Prefer installing from the project root:
-#   pip install -r ../requirements.txt
--r ../requirements.txt
+fastapi>=0.115.6
+uvicorn[standard]>=0.34.0
+pydantic>=2.11.0
+pydantic-settings>=2.8.0
+sqlalchemy>=2.0.36
+python-multipart>=0.0.20
+pillow>=11.1.0
+reportlab>=4.2.5
+httpx>=0.28.1
