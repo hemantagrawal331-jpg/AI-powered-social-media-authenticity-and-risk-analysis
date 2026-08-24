@@ -108,17 +108,14 @@ Optional: copy `.env.example` values. The Vite dev server proxies `/api` to port
 
 The live UI at a `*.vercel.app` URL is only half the app. If **Launch Demo** fails, Vercel is serving the React frontend but **not** FastAPI. `/api/samples` then returns HTML instead of JSON.
 
-Use **one Vercel project** that builds the UI and the API together.
+Use **one Vercel project**. Your current project builds from the `frontend` folder, so the Python API now lives there too (`frontend/api` + `frontend/server`).
 
-1. Push these files to GitHub.
-2. In Vercel → Project → **Settings → General → Root Directory**.
-3. Set Root Directory to `fake-social-media-detector` (**not** `frontend`, **not** `backend`).
-   Your GitHub repo root is `Sih`, so this subdirectory is required.
-4. Framework preset: **Other**. Build command and output are in `vercel.json`.
-5. Redeploy.
-6. Check `https://your-app.vercel.app/api/health` — it must return JSON like `{"status":"ok",...}`, not the FakeGuard homepage.
+1. Push these files to GitHub (Vercel will redeploy automatically).
+2. Keep Root Directory as `fake-social-media-detector/frontend` if that is already set, **or** set it to `fake-social-media-detector`.
+3. After the deploy is Ready, open `https://your-app.vercel.app/api/health`.
+   It must return JSON like `{"status":"ok",...}`, not a 404 and not the homepage.
 
-You do **not** need `VITE_API_URL` for this setup. The browser calls `/api` on the same domain.
+You do **not** need `VITE_API_URL`. The browser calls `/api` on the same domain.
 
 SQLite history on Vercel is ephemeral (serverless `/tmp`). Analysis still works.
 

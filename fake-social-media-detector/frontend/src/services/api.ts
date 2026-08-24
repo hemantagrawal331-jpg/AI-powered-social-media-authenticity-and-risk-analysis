@@ -34,8 +34,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
           detail = payload.detail.map((item: { msg?: string }) => item.msg || "Invalid field").join("; ");
         }
       } else {
-        detail =
-          "Backend API is not deployed. On Vercel, set Root Directory to fake-social-media-detector (not frontend) and redeploy.";
+        detail = "Backend API did not return JSON. Wait for the latest Vercel deploy to finish, then retry."
       }
     } catch {
       /* keep default */
@@ -46,7 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
     throw new Error(
-      "Backend API is not deployed. On Vercel, set Root Directory to fake-social-media-detector (not frontend) and redeploy.",
+      "Backend API did not return JSON. Wait for the latest Vercel deploy to finish, then retry.",
     );
   }
   return response.json() as Promise<T>;
