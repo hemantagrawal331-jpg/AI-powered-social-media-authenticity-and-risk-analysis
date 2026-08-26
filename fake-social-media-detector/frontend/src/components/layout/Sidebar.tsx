@@ -1,11 +1,12 @@
 import {
+  BrainCircuit,
+  FileText,
   GitCompare,
   History,
   Home,
   Info,
   Network,
   ScanSearch,
-  FileText,
   Shield,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -18,6 +19,7 @@ const links = [
   { to: "/network", label: "Network", icon: Network },
   { to: "/history", label: "History", icon: History },
   { to: "/reports", label: "Reports", icon: FileText },
+  { to: "/model", label: "Model Lab", icon: BrainCircuit },
   { to: "/about", label: "About", icon: Info },
 ];
 
@@ -53,7 +55,7 @@ export function Sidebar() {
         ))}
       </nav>
       <p className="mt-auto text-[11px] leading-5 text-slate-500">
-        Prototype heuristic engine. No social-media logins. No live scraping.
+        Prototype with a trained Random Forest on synthetic labels. No social-media logins. No scraping.
       </p>
     </aside>
   );

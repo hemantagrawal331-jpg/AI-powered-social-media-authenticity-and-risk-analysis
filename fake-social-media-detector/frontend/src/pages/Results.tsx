@@ -73,6 +73,11 @@ export function Results() {
           Likely purpose: <span className="text-accent">{result.purpose}</span> · {result.purpose_confidence}%
           estimated confidence
         </p>
+        {result.model?.available && (
+          <p className="mt-2 text-xs text-slate-500">
+            Blend: Random Forest {result.model.ml_probability}% · heuristics {result.model.heuristic_probability}%
+          </p>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <button type="button" onClick={() => void download("json")} className="rounded-xl border border-white/10 px-4 py-2 text-sm">
             Download JSON
@@ -248,6 +253,58 @@ export function Results() {
               ))}
             </tbody>
           </table>
+        </div>
+      </GlassCard>
+
+      {result.history_signals && (
+        <GlassCard title="Historical behavior">
+          <p className="text-sm text-slate-300">{String(result.history_signals.explanation || "")}</p>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <Row label="History risk" value={String(result.history_signals.score ?? "—")} />
+            <Row label="Like volatility" value={String(result.history_signals.like_cv ?? "—")} />
+            <Row label="Follower velocity" value={String(result.history_signals.follower_velocity ?? "—")} />
+            <Row label="Engagement collapse" value={String(result.history_signals.engagement_divergence ?? "—")} />
+          </dl>
+        </GlassCard>
+      )}
+
+      <GlassCard title="Continuous validation">
+        <p className="text-sm text-slate-400">Mark this result so the model can be retrained later.</p>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            className="rounded-xl border border-emerald-400/30 px-4 py-2 text-sm"
+            onClick={() =>
+              void api
+                .modelFeedback({
+                  analysis_id: result.id,
+                  username: result.username,
+                  predicted_fake: result.fake_probability,
+                  analyst_label: "genuine",
+                })
+                .then(() => setNotice("Labeled genuine. Stored for later retraining."))
+                .catch((err: Error) => setError(err.message))
+            }
+          >
+            Label genuine
+          </button>
+          <button
+            type="button"
+            className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm"
+            onClick={() =>
+              void api
+                .modelFeedback({
+                  analysis_id: result.id,
+                  username: result.username,
+                  predicted_fake: result.fake_probability,
+                  analyst_label: "fake",
+                })
+                .then(() => setNotice("Labeled fake. Stored for later retraining."))
+                .catch((err: Error) => setError(err.message))
+            }
+          >
+            Label fake
+          </button>
         </div>
       </GlassCard>
     </div>

@@ -128,6 +128,14 @@ class ScoreContribution(BaseModel):
     weighted_score: float
 
 
+class ModelInfo(BaseModel):
+    source: str = "heuristic"
+    algorithm: str = "weighted-heuristics"
+    ml_probability: float | None = None
+    heuristic_probability: float | None = None
+    available: bool = False
+
+
 class AnalysisResult(BaseModel):
     id: int | None = None
     username: str
@@ -155,6 +163,8 @@ class AnalysisResult(BaseModel):
     network: NetworkInfo
     cluster: ClusterInfo
     impersonation: ImpersonationInfo
+    model: ModelInfo = Field(default_factory=ModelInfo)
+    history_signals: dict[str, Any] = Field(default_factory=dict)
     disclaimer: str
     created_at: datetime
 

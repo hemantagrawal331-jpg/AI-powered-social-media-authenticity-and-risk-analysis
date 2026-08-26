@@ -10,6 +10,7 @@ const links = [
   ["/network", "Network"],
   ["/history", "History"],
   ["/reports", "Reports"],
+  ["/model", "Model Lab"],
   ["/about", "About"],
 ] as const;
 

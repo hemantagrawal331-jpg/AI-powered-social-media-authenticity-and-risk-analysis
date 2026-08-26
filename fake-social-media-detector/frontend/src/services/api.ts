@@ -76,6 +76,16 @@ export const api = {
     request<ReportMeta>(`/api/reports/${analysisId}?fmt=${fmt}`, { method: "POST" }),
   reportDownloadUrl: (reportId: number) => `${BASE}/api/reports/${reportId}/download`,
   networkOverview: () => request<Record<string, unknown>>("/api/network/overview"),
+  modelStatus: () => request<Record<string, unknown>>("/api/model"),
+  modelFeedback: (body: {
+    analysis_id?: number | null;
+    username: string;
+    predicted_fake: number;
+    analyst_label: "fake" | "genuine";
+    note?: string;
+  }) => request<{ id: number; stored: boolean }>("/api/model/feedback", { method: "POST", body: JSON.stringify(body) }),
+  modelFeedbackList: () => request<{ counts: Record<string, number>; items: Record<string, unknown>[] }>("/api/model/feedback"),
+  ingestUrl: (url: string) => request<Record<string, unknown>>("/api/ingest/url", { method: "POST", body: JSON.stringify({ url }) }),
 };
 
 export function persistResult(result: AnalysisResult) {

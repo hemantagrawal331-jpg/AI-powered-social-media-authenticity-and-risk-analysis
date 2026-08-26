@@ -5,6 +5,7 @@ import { Analyzer } from "./pages/Analyzer";
 import { Compare } from "./pages/Compare";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
+import { ModelLab } from "./pages/ModelLab";
 import { Network } from "./pages/Network";
 import { Reports } from "./pages/Reports";
 import { Results } from "./pages/Results";
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/network" element={<Network />} />
         <Route path="/history" element={<History />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/model" element={<ModelLab />} />
         <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -173,6 +173,14 @@ export interface AnalysisResult {
   network: NetworkInfo;
   cluster: ClusterInfo;
   impersonation: ImpersonationInfo;
+  model?: {
+    source: string;
+    algorithm: string;
+    ml_probability: number | null;
+    heuristic_probability: number | null;
+    available: boolean;
+  };
+  history_signals?: Record<string, unknown>;
   disclaimer: string;
   created_at: string;
 }

@@ -32,3 +32,15 @@ class GeneratedReport(Base):
     format: Mapped[str] = mapped_column(String(16), default="json")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     payload_json: Mapped[str] = mapped_column(Text)
+
+
+class ModelFeedback(Base):
+    __tablename__ = "model_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    analysis_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    username: Mapped[str] = mapped_column(String(120), default="")
+    predicted_fake: Mapped[float] = mapped_column(Float, default=0)
+    analyst_label: Mapped[str] = mapped_column(String(16))
+    note: Mapped[str] = mapped_column(String(400), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

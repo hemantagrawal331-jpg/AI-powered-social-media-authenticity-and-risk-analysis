@@ -23,23 +23,23 @@ export function About() {
         <ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">
           <li>Frontend: React, Vite, TypeScript, Tailwind CSS, Recharts, Lucide</li>
           <li>Backend: FastAPI, Pydantic, SQLAlchemy / SQLite, Pillow, ReportLab</li>
-          <li>Engine: modular heuristic scoring that can later wrap a trained model</li>
+          <li>Model: Random Forest on 4,000 synthetic labeled profiles, blended with heuristics</li>
+          <li>History: follower/like timelines, growth spikes, engagement collapse</li>
+          <li>Validation: holdout accuracy/precision/recall plus analyst labels</li>
         </ul>
       </GlassCard>
       <GlassCard title="Limitations">
         <p className="text-sm leading-6 text-slate-300">
-          The system does not scrape platforms, does not request login credentials, and does not
-          claim identity verification from a photo. Scores are estimates from user-supplied or
-          sample data. Accuracy in production would need labeled datasets, platform APIs, and
-          ongoing validation.
+          Training data is synthetic, not a dump of live Instagram accounts. Official platform APIs
+          are not connected because Meta/X require approved apps and prohibit scraping. A photo still
+          does not prove identity. Open Model Lab for the current holdout metrics.
         </p>
       </GlassCard>
-      <GlassCard title="Future AI / ML upgrade">
+      <GlassCard title="How probability is computed now">
         <p className="text-sm leading-6 text-slate-300">
-          The analysis package is modular. The heuristic engine can be replaced or stacked with
-          Random Forest or XGBoost on tabular features, NLP models for bios and captions, computer
-          vision for profile photos, graph neural networks for clusters, anomaly detection for
-          growth spikes, and official platform APIs when authorized.
+          Each analyzer still scores 0–100. A Random Forest, trained on those features plus
+          historical timeline stats, outputs P(fake). The dashboard shows a blend: 62% model + 38%
+          transparent heuristic weights. Analysts can label results to support later retraining.
         </p>
       </GlassCard>
     </div>

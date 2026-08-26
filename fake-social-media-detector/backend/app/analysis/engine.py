@@ -9,6 +9,7 @@ from app.analysis.bio import analyze_bio
 from app.analysis.cluster import detect_cluster
 from app.analysis.content import analyze_content
 from app.analysis.engagement import analyze_engagement
+from app.analysis.historical import analyze_history
 from app.analysis.image import analyze_image, image_risk_score
 from app.analysis.impersonation import detect_impersonation
 from app.analysis.network import build_network
@@ -23,14 +24,17 @@ from app.schemas.analysis import (
     ChartPoint,
     EngagementSeriesPoint,
     FeatureBreakdown,
+    ModelInfo,
     ReasonItem,
+    TimelineEvent,
 )
 from app.schemas.profile import ProfileInput
 
 DISCLAIMER = (
-    "This tool provides an estimated risk score based on available profile signals and heuristic analysis. "
-    "It cannot guarantee that an account is fake or genuine. Real-world accuracy would require large-scale "
-    "training data, platform APIs, historical behavior, and continuous model validation."
+    "FakeGuard estimates risk with heuristic signals plus a Random Forest model trained on 4,000 "
+    "labeled synthetic profiles, and it inspects the supplied activity timeline. It still cannot "
+    "guarantee that an account is fake or genuine. Live Instagram/X APIs are not used: those "
+    "platforms require approved developer apps and prohibit scraping."
 )
 
 
@@ -41,6 +45,7 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
     profile_meta = analyze_profile_features(profile)
     behavior = analyze_behavior(profile)
     content = analyze_content(profile)
+    history = analyze_history(profile)
     image = analyze_image(
         profile.image_base64,
         has_profile_picture=profile.has_profile_picture,
@@ -64,14 +69,35 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         "content": content["score"],
         "image": image_risk_score(image),
     }
-    probability, feature_scores, contributions = combine_scores(raw_scores)
+    heuristic_probability, feature_scores, contributions = combine_scores(raw_scores)
     hot_signals = sum(1 for value in raw_scores.values() if value >= 60)
     if hot_signals >= 3:
-        probability = min(100.0, round(probability + 7 + (hot_signals - 3) * 3, 1))
+        heuristic_probability = min(100.0, round(heuristic_probability + 7 + (hot_signals - 3) * 3, 1))
     if bio["score"] >= 55 and (behavior["score"] >= 45 or content["score"] >= 55):
-        probability = min(100.0, round(probability + 10, 1))
+        heuristic_probability = min(100.0, round(heuristic_probability + 10, 1))
     if impersonation.detected:
-        probability = min(100.0, round(probability + min(22.0, impersonation.similarity * 0.22), 1))
+        heuristic_probability = min(100.0, round(heuristic_probability + min(22.0, impersonation.similarity * 0.22), 1))
+
+    from app.ml.predictor import ModelPredictor
+
+    ml = ModelPredictor().predict(profile, {**raw_scores, "history": history["score"]}, history)
+    if ml:
+        probability = round(min(100.0, 0.62 * ml["ml_probability"] + 0.38 * heuristic_probability), 1)
+        model_info = ModelInfo(
+            source="random_forest+heuristics",
+            algorithm=ml["algorithm"],
+            ml_probability=ml["ml_probability"],
+            heuristic_probability=heuristic_probability,
+            available=True,
+        )
+    else:
+        probability = heuristic_probability
+        model_info = ModelInfo(
+            source="heuristic_fallback",
+            algorithm="weighted-heuristics",
+            heuristic_probability=heuristic_probability,
+            available=False,
+        )
     level = risk_level(probability)
 
     purpose, top_purposes = classify_purpose(
@@ -103,6 +129,15 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
             "engagement_anomaly": engagement["score"] >= 55,
         },
     )
+    if history["score"] >= 40:
+        timeline.append(
+            TimelineEvent(
+                date=profile.engagement_history[-1].date if profile.engagement_history else (timeline[-1].date if timeline else ""),
+                title="Historical anomaly",
+                detail=history["explanation"],
+                severity="high" if history["score"] >= 70 else "medium",
+            )
+        )
     network = build_network(profile, cluster.members, probability)
 
     radar = [
@@ -145,6 +180,8 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         network=network,
         cluster=cluster,
         impersonation=impersonation,
+        model=model_info,
+        history_signals=history,
         disclaimer=DISCLAIMER,
         created_at=datetime.utcnow(),
     )

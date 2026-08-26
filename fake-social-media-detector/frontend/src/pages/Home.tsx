@@ -53,9 +53,9 @@ export function Home() {
           AI-powered social media authenticity and risk analysis
         </h1>
         <p className="mt-4 max-w-2xl text-slate-300">
-          Estimate whether an account looks genuine, suspicious, or fake by combining username,
-          engagement, bio, behavior, content, and network signals — without logging into any
-          platform.
+          Estimate whether an account looks genuine, suspicious, or fake with a trained model on
+          4,000 labeled profiles, plus username, engagement, bio, behavior, timeline, and network
+          signals — without logging into any platform.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <button
