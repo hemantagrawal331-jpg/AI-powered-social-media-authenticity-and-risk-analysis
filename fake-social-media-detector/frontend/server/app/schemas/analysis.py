@@ -133,7 +133,41 @@ class ModelInfo(BaseModel):
     algorithm: str = "weighted-heuristics"
     ml_probability: float | None = None
     heuristic_probability: float | None = None
+    logistic_probability: float | None = None
+    anomaly_probability: float | None = None
     available: bool = False
+    calibration: str = "none"
+    model_version: str = "v2.0.0"
+    feature_schema: str = "v2"
+    analysis_engine: str = "hybrid-ensemble"
+
+
+class DomainScoreCard(BaseModel):
+    score: float = 50
+    risk: float = 50
+    confidence: float = 0
+    evidence_count: int = 0
+    missing_data_ratio: float = 1
+    explanations: list[str] = Field(default_factory=list)
+
+
+class EvidenceSignal(BaseModel):
+    signal_name: str
+    direction: str
+    strength: float
+    domain: str
+    statistical_evidence: str
+    human_explanation: str
+    observed: str = ""
+    expected: str = ""
+    percentile: float | None = None
+
+
+class WaterfallStep(BaseModel):
+    label: str
+    delta: float = 0
+    value: float = 0
+    kind: str = "risk"
 
 
 class AnalysisResult(BaseModel):
@@ -165,6 +199,23 @@ class AnalysisResult(BaseModel):
     impersonation: ImpersonationInfo
     model: ModelInfo = Field(default_factory=ModelInfo)
     history_signals: dict[str, Any] = Field(default_factory=dict)
+    authenticity_score: float = 50
+    inauthenticity_probability: float = 50
+    classification: str = "INSUFFICIENT_EVIDENCE"
+    confidence: str = "LOW"
+    uncertainty: float = 0.5
+    uncertainty_label: str = "MEDIUM"
+    uncertainty_interval: float = 12
+    evidence_sufficiency: float = 0
+    ood_score: float = 0
+    domain_scores: dict[str, Any] = Field(default_factory=dict)
+    top_positive_signals: list[dict[str, Any]] = Field(default_factory=list)
+    top_risk_signals: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_waterfall: list[dict[str, Any]] = Field(default_factory=list)
+    counterfactuals: list[str] = Field(default_factory=list)
+    explanation: str = ""
+    limitations: list[str] = Field(default_factory=list)
+    signal_hardness: dict[str, float] = Field(default_factory=dict)
     disclaimer: str
     created_at: datetime
 

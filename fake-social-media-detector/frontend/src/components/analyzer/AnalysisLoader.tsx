@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 
 const STEPS = [
-  "Scanning profile metadata...",
-  "Analyzing username structure...",
-  "Checking engagement anomalies...",
-  "Reviewing behavioral patterns...",
-  "Scoring bio and content language...",
-  "Calculating weighted risk score...",
-  "Classifying likely account purpose...",
-  "Generating report artifacts...",
+  "Extracting profile signals",
+  "Analyzing behavioral patterns",
+  "Detecting statistical anomalies",
+  "Evaluating engagement vs cohort",
+  "Running probabilistic fusion",
+  "Calibrating prediction",
+  "Generating explanation",
 ];
 
 export function AnalysisLoader() {
@@ -24,8 +23,11 @@ export function AnalysisLoader() {
 
   return (
     <div className="glass mx-auto max-w-xl rounded-3xl p-8">
-      <p className="font-display text-xl">Analyzing profile...</p>
-      <p className="mt-1 text-sm text-slate-400">Heuristic engine is scoring supplied signals. No live platform call.</p>
+      <p className="font-display text-xl">Running authenticity intelligence</p>
+      <p className="mt-1 text-sm text-slate-400">
+        Ensemble + evidence fusion on supplied fields only. No live platform call. Missing data lowers
+        confidence, not risk.
+      </p>
       <ul className="mt-6 space-y-3">
         {STEPS.map((label, index) => {
           const done = index < step;

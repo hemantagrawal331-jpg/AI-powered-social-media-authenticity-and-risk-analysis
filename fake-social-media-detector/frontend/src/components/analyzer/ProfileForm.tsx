@@ -4,9 +4,12 @@ import type { Platform, ProfileInput, SampleSummary } from "../../types/analysis
 const PLATFORMS: { id: Platform; label: string }[] = [
   { id: "instagram", label: "Instagram" },
   { id: "twitter", label: "X / Twitter" },
+  { id: "x", label: "X" },
   { id: "facebook", label: "Facebook" },
   { id: "tiktok", label: "TikTok" },
   { id: "linkedin", label: "LinkedIn" },
+  { id: "youtube", label: "YouTube" },
+  { id: "other", label: "Other" },
 ];
 
 export function ProfileForm({

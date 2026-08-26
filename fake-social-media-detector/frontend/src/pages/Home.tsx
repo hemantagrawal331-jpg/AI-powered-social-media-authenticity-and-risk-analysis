@@ -48,14 +48,14 @@ export function Home() {
   return (
     <div className="space-y-8">
       <section className="glass overflow-hidden rounded-[32px] px-6 py-10 sm:px-10">
-        <p className="text-xs uppercase tracking-[0.28em] text-accent">FakeGuard AI</p>
+        <p className="text-xs uppercase tracking-[0.28em] text-accent">FakeGuard AI · system status live</p>
         <h1 className="mt-3 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl">
-          AI-powered social media authenticity and risk analysis
+          Social account intelligence
         </h1>
         <p className="mt-4 max-w-2xl text-slate-300">
-          Estimate whether an account looks genuine, suspicious, or fake with a trained model on
-          4,000 labeled profiles, plus username, engagement, bio, behavior, timeline, and network
-          signals — without logging into any platform.
+          Analyze observable signals without platform login. FakeGuard estimates authenticity
+          probability, inauthenticity risk, model confidence, evidence sufficiency, and uncertainty
+          from the fields you supply.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <button
@@ -107,13 +107,19 @@ export function Home() {
         </div>
       </section>
 
-      <GlassCard title="How the prototype scores risk">
+      <GlassCard title="How the system scores risk">
         <p className="text-sm leading-6 text-slate-300">
-          FakeGuard AI does not call Instagram, X, or any paid API. You supply profile fields (or
-          load a sample). The backend extracts features, normalizes each signal to 0–100, then
-          applies documented weights: engagement 20%, behavior 15%, and smaller weights for
-          username, bio, content, ratio, age, completeness, and image. Changing the inputs changes
-          the score, charts, reasons, and purpose estimate.
+          Input is validated, features are extracted across identity, profile, engagement, temporal,
+          content, and partial network domains, then fused with a calibrated Random Forest + gradient
+          boosting + logistic baseline + isolation-forest anomaly score. Domain weights drop to zero
+          when data is missing. Content/NLP is discounted because LLM-written bios are cheap to fake.
+        </p>
+      </GlassCard>
+      <GlassCard title="Privacy">
+        <p className="text-sm leading-6 text-slate-300">
+          FakeGuard AI analyzes only information voluntarily provided to the system or otherwise
+          available through authorized sources. It does not require social media credentials and
+          does not attempt to access private account data.
         </p>
       </GlassCard>
     </div>

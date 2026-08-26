@@ -13,33 +13,27 @@ export function About() {
       </GlassCard>
       <GlassCard title="Solution">
         <p className="text-sm leading-6 text-slate-300">
-          This prototype analyzes many weak signals together: profile completeness, username
-          structure, engagement ratios, account age, posting behavior, bio language, content
-          repetition, a basic image indicator, and neighborhood overlap with bundled samples. No
-          single keyword or ratio is enough to brand an account malicious.
+          FakeGuard is a multimodal authenticity intelligence system. It estimates authenticity
+          probability, inauthenticity risk, model confidence, evidence sufficiency, and uncertainty
+          from voluntarily supplied fields. Missing data lowers confidence and drops domain weights
+          — it is never treated as proof of fraud.
         </p>
       </GlassCard>
       <GlassCard title="Technology">
         <ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">
           <li>Frontend: React, Vite, TypeScript, Tailwind CSS, Recharts, Lucide</li>
           <li>Backend: FastAPI, Pydantic, SQLAlchemy / SQLite, Pillow, ReportLab</li>
-          <li>Model: Random Forest on 4,000 synthetic labeled profiles, blended with heuristics</li>
-          <li>History: follower/like timelines, growth spikes, engagement collapse</li>
-          <li>Validation: holdout accuracy/precision/recall plus analyst labels</li>
+          <li>Ensemble: calibrated Random Forest + histogram gradient boosting + logistic + isolation forest</li>
+          <li>Fusion: evidence-weighted log-odds with Botometer-style domain families</li>
+          <li>Calibration: isotonic (Platt fallback), ECE and Brier reported in Model Lab</li>
         </ul>
       </GlassCard>
       <GlassCard title="Limitations">
         <p className="text-sm leading-6 text-slate-300">
-          Training data is synthetic, not a dump of live Instagram accounts. Official platform APIs
-          are not connected because Meta/X require approved apps and prohibit scraping. A photo still
-          does not prove identity. Open Model Lab for the current holdout metrics.
-        </p>
-      </GlassCard>
-      <GlassCard title="How probability is computed now">
-        <p className="text-sm leading-6 text-slate-300">
-          Each analyzer still scores 0–100. A Random Forest, trained on those features plus
-          historical timeline stats, outputs P(fake). The dashboard shows a blend: 62% model + 38%
-          transparent heuristic weights. Analysts can label results to support later retraining.
+          Training uses overlapping synthetic archetypes, not live Instagram dumps. Official platform
+          APIs are not connected. A photo does not prove identity. LLM-written bios can fool
+          content-only checks; those checks are discounted. Open Model Lab and MODEL_CARD.md for
+          measured synthetic metrics — they are not live-platform accuracy.
         </p>
       </GlassCard>
     </div>

@@ -5,10 +5,10 @@ export function Disclaimer() {
     <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-100/90">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
       <p>
-        FakeGuard estimates risk with heuristic signals plus a Random Forest trained on 4,000 labeled
-        synthetic profiles, and it inspects the supplied activity timeline. It still cannot guarantee
-        an account is fake or genuine. Live Instagram/X APIs are not used — those platforms require
-        approved developer apps and prohibit scraping. See Model Lab for holdout accuracy.
+        This analysis is probabilistic and should not be treated as proof that an account is fake,
+        fraudulent, malicious, or automated. FakeGuard estimates patterns from voluntarily supplied
+        observable signals and may produce false positives or false negatives. It does not require
+        social-media credentials and does not access private account data.
       </p>
     </div>
   );

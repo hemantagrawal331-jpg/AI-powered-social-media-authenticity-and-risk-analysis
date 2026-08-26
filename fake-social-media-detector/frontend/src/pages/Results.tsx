@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { DashboardCharts } from "../components/charts/DashboardCharts";
+import { EvidenceWaterfall } from "../components/charts/EvidenceWaterfall";
 import { RiskGauge } from "../components/charts/RiskGauge";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
@@ -61,21 +62,49 @@ export function Results() {
       {notice && <div className="rounded-2xl border border-accent/20 bg-accent/10 px-4 py-2 text-sm">{notice}</div>}
 
       <section className="glass rounded-[32px] px-6 py-8 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Account risk assessment</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Social account intelligence</p>
         <p className="mt-3 font-mono text-sm text-slate-400">
           @{result.username} · {result.platform}
         </p>
-        <p className="mt-2 font-display text-7xl font-bold">{Math.round(result.fake_probability)}%</p>
+        <p className="mt-6 text-sm text-slate-300">Authenticity score</p>
+        <p className="mt-1 font-display text-7xl font-bold">{Math.round(result.authenticity_score ?? 100 - result.fake_probability)}</p>
+        <p className="text-sm text-slate-500">/ 100</p>
         <div className="mt-3 flex justify-center">
           <RiskBadge level={result.risk_level} />
         </div>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+          {result.explanation ||
+            `Based on the observable evidence provided, this account shows an estimated ${Math.round(result.fake_probability)}% probability of elevated inauthenticity risk.`}
+        </p>
+        <dl className="mx-auto mt-6 grid max-w-3xl gap-3 text-xs sm:grid-cols-4">
+          <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+            <dt className="text-slate-500">Inauthenticity risk</dt>
+            <dd className="mt-1 font-mono text-base text-slate-100">{Math.round(result.inauthenticity_probability ?? result.fake_probability)}%</dd>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+            <dt className="text-slate-500">Model confidence</dt>
+            <dd className="mt-1 font-mono text-base text-slate-100">{result.confidence ?? "—"}</dd>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+            <dt className="text-slate-500">Uncertainty</dt>
+            <dd className="mt-1 font-mono text-base text-slate-100">
+              {result.uncertainty_label ?? "—"} ±{result.uncertainty_interval ?? 12}%
+            </dd>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+            <dt className="text-slate-500">Evidence sufficiency</dt>
+            <dd className="mt-1 font-mono text-base text-slate-100">{Math.round(result.evidence_sufficiency ?? 0)}%</dd>
+          </div>
+        </dl>
         <p className="mt-4 text-slate-200">
           Likely purpose: <span className="text-accent">{result.purpose}</span> · {result.purpose_confidence}%
           estimated confidence
         </p>
         {result.model?.available && (
           <p className="mt-2 text-xs text-slate-500">
-            Blend: Random Forest {result.model.ml_probability}% · heuristics {result.model.heuristic_probability}%
+            {result.model.model_version || "v2"} · {result.model.analysis_engine || "hybrid ensemble"} · calibration{" "}
+            {result.model.calibration || "isotonic"} · RF {result.model.ml_probability ?? "—"}% · rules{" "}
+            {result.model.heuristic_probability ?? "—"}%
           </p>
         )}
         <div className="mt-6 flex justify-center gap-3">
@@ -92,17 +121,65 @@ export function Results() {
         <GlassCard>
           <RiskGauge value={result.fake_probability} />
         </GlassCard>
-        <GlassCard title="Risk breakdown">
+        <GlassCard title="Domain authenticity">
           <div className="space-y-4">
-            <ScoreBar label="Username" value={result.feature_scores.username} />
-            <ScoreBar label="Engagement" value={result.feature_scores.engagement} />
-            <ScoreBar label="Behavior" value={result.feature_scores.behavior} />
-            <ScoreBar label="Bio" value={result.feature_scores.bio} />
-            <ScoreBar label="Content" value={result.feature_scores.content} />
-            <ScoreBar label="Profile" value={result.feature_scores.profile} />
+            {Object.entries(result.domain_scores || {}).map(([name, card]) => (
+              <ScoreBar key={name} label={name} value={card.score} />
+            ))}
+            {!result.domain_scores && (
+              <>
+                <ScoreBar label="Username" value={result.feature_scores.username} />
+                <ScoreBar label="Engagement" value={result.feature_scores.engagement} />
+                <ScoreBar label="Behavior" value={result.feature_scores.behavior} />
+                <ScoreBar label="Bio" value={result.feature_scores.bio} />
+                <ScoreBar label="Content" value={result.feature_scores.content} />
+                <ScoreBar label="Profile" value={result.feature_scores.profile} />
+              </>
+            )}
+          </div>
+          {result.signal_hardness && (
+            <p className="mt-4 text-xs text-slate-500">
+              Score mix from hard-to-fake metadata/behavior/graph: {result.signal_hardness.hard_to_fake}% ·
+              LLM-easy content/media: {result.signal_hardness.easy_to_fake_with_llm}%
+            </p>
+          )}
+        </GlassCard>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GlassCard title="Evidence waterfall">
+          <EvidenceWaterfall result={result} />
+        </GlassCard>
+        <GlassCard title="Why this result">
+          <div className="space-y-3">
+            {(result.top_positive_signals || []).slice(0, 4).map((signal) => (
+              <div key={signal.signal_name} className="rounded-2xl border border-emerald-400/10 bg-emerald-400/5 p-3 text-sm">
+                <p className="font-medium text-emerald-200">✓ {signal.human_explanation}</p>
+                <p className="mt-1 text-xs text-slate-500">{signal.statistical_evidence}</p>
+              </div>
+            ))}
+            {(result.top_risk_signals || []).slice(0, 4).map((signal) => (
+              <div key={signal.signal_name} className="rounded-2xl border border-amber-400/10 bg-amber-400/5 p-3 text-sm">
+                <p className="font-medium text-amber-100">⚠ {signal.human_explanation}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Observed {signal.observed || "—"} · expected {signal.expected || "—"} · {signal.statistical_evidence}
+                </p>
+              </div>
+            ))}
           </div>
         </GlassCard>
       </div>
+
+      {!!result.counterfactuals?.length && (
+        <GlassCard title="What would reduce this risk?">
+          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-300">
+            {result.counterfactuals.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-slate-500">Model-based counterfactual estimates, not advice to manipulate a live profile.</p>
+        </GlassCard>
+      )}
 
       <GlassCard title="Why we think this account is suspicious">
         <div className="space-y-3">

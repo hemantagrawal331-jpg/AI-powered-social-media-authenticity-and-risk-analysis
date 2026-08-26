@@ -1,4 +1,4 @@
-"""Load the trained Random Forest and predict fake probability."""
+"""Load the v2 ensemble. Falls back to portable logistic if sklearn/joblib fail."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import math
 from functools import lru_cache
 from pathlib import Path
 
-from app.analysis.features import FEATURE_NAMES, extract_features
 from app.config import BACKEND_DIR, REPO_DIR
+from app.intelligence.vector import FEATURE_NAMES, extract_vector
 from app.schemas.profile import ProfileInput
 
 
@@ -17,7 +17,6 @@ def _candidates() -> list[Path]:
         BACKEND_DIR / "data" / "models",
         REPO_DIR / "data" / "models",
         Path(__file__).resolve().parents[2] / "data" / "models",
-        Path(__file__).resolve().parents[1] / "data" / "models",
     ]
 
 
@@ -32,17 +31,13 @@ def _first_file(name: str) -> Path | None:
 @lru_cache
 def load_metrics_file() -> dict:
     path = _first_file("metrics.json")
-    if not path:
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8")) if path else {}
 
 
 @lru_cache
 def load_portable() -> dict | None:
     path = _first_file("portable.json")
-    if not path:
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8")) if path else None
 
 
 @lru_cache
@@ -52,15 +47,25 @@ def load_bundle() -> dict | None:
         return None
     try:
         import joblib
+
         payload = joblib.load(path)
     except Exception:
         return None
-    return {
-        "model": payload["model"],
-        "features": payload.get("features", FEATURE_NAMES),
-        "metrics": load_metrics_file(),
-        "path": str(path),
-    }
+    if "rf" not in payload and "model" in payload:
+        payload = {
+            "rf": payload["model"],
+            "gb": None,
+            "logistic": None,
+            "anomaly": None,
+            "features": payload.get("features", FEATURE_NAMES),
+            "means": None,
+            "stds": None,
+            "threshold": 0.38,
+            "calibration": "unknown",
+        }
+    payload["path"] = str(path)
+    payload["metrics"] = load_metrics_file()
+    return payload
 
 
 def _sigmoid(value: float) -> float:
@@ -74,8 +79,15 @@ def _sigmoid(value: float) -> float:
 def _logistic_proba(vector: list[float], portable: dict) -> float:
     z = float(portable["intercept"])
     for value, mean, std, coef in zip(vector, portable["means"], portable["stds"], portable["coef"]):
-        z += coef * ((value - mean) / std)
+        z += coef * ((value - mean) / (std or 1e-6))
     return _sigmoid(z)
+
+
+def _align(vector: list[float], names: list[str]) -> list[float]:
+    if names == FEATURE_NAMES:
+        return vector
+    lookup = dict(zip(FEATURE_NAMES, vector))
+    return [float(lookup.get(name, 0.0)) for name in names]
 
 
 class ModelPredictor:
@@ -86,32 +98,63 @@ class ModelPredictor:
         meta = load_metrics_file()
         bundle = load_bundle()
         if bundle:
-            return {"available": True, "runtime": "random_forest", **bundle["metrics"], "path": bundle["path"]}
+            return {"available": True, "runtime": "hybrid_ensemble", **meta, "path": bundle.get("path")}
         if meta:
-            return {
-                "available": True,
-                "runtime": "portable_logistic",
-                **meta,
-                "detail": "Holdout metrics from training. This runtime is using the portable logistic fallback.",
-            }
+            return {"available": True, "runtime": "portable_logistic", **meta}
         return {"available": False, "detail": "Model file not found. Run: python -m app.ml.train"}
 
-    def predict(self, profile: ProfileInput, raw_scores: dict[str, float], history: dict) -> dict | None:
-        vector = extract_features(profile, raw_scores, history)
+    def predict(self, profile: ProfileInput) -> dict | None:
+        vector = extract_vector(profile)
         bundle = load_bundle()
+        calibrated = logistic_p = anomaly_p = ood = None
+        algorithm = "untrained"
+        calibration = "none"
         if bundle:
-            proba = float(bundle["model"].predict_proba([vector])[0][1])
-            return {
-                "ml_probability": round(proba * 100, 1),
-                "algorithm": "RandomForestClassifier",
-                "feature_count": len(vector),
-            }
-        portable = load_portable()
-        if not portable:
+            names = bundle.get("features") or FEATURE_NAMES
+            aligned = _align(vector, names)
+            try:
+                rf_p = float(bundle["rf"].predict_proba([aligned])[0][1])
+                gb_p = float(bundle["gb"].predict_proba([aligned])[0][1]) if bundle.get("gb") is not None else rf_p
+                if bundle.get("platt") is not None:
+                    calibrated = float(bundle["platt"].predict_proba([[rf_p, gb_p]])[0][1])
+                else:
+                    calibrated = 0.62 * rf_p + 0.38 * gb_p
+                algorithm = "RF+HGB+Platt"
+            except Exception:
+                calibrated = None
+            means = bundle.get("means")
+            stds = bundle.get("stds")
+            if bundle.get("logistic") is not None and means and stds:
+                scaled = [(v - m) / (s or 1e-6) for v, m, s in zip(aligned, means, stds)]
+                try:
+                    logistic_p = float(bundle["logistic"].predict_proba([scaled])[0][1])
+                except Exception:
+                    logistic_p = None
+            if bundle.get("anomaly") is not None:
+                try:
+                    raw = float(bundle["anomaly"].score_samples([aligned])[0])
+                    # IsolationForest: less negative = more typical. Map to 0..1 anomaly.
+                    anomaly_p = max(0.0, min(1.0, 1 / (1 + math.exp(raw * 3))))
+                    ood = anomaly_p
+                except Exception:
+                    anomaly_p = None
+            calibration = bundle.get("calibration") or "isotonic"
+        elif load_portable():
+            portable = load_portable()
+            if portable and len(portable.get("coef", [])) == len(vector):
+                logistic_p = _logistic_proba(vector, portable)
+                calibrated = logistic_p
+                algorithm = "LogisticRegression(portable)"
+                calibration = "none"
+        if calibrated is None and logistic_p is None:
             return None
-        proba = _logistic_proba(vector, portable)
         return {
-            "ml_probability": round(proba * 100, 1),
-            "algorithm": "LogisticRegression(portable)",
+            "calibrated": calibrated,
+            "logistic": logistic_p,
+            "anomaly": anomaly_p,
+            "ood": ood if ood is not None else 0.0,
+            "algorithm": algorithm,
+            "calibration": calibration,
             "feature_count": len(vector),
+            "ml_probability": round((calibrated if calibrated is not None else logistic_p) * 100, 1),
         }

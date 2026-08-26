@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-Platform = Literal["instagram", "twitter", "facebook", "tiktok", "linkedin"]
+Platform = Literal["instagram", "twitter", "x", "facebook", "tiktok", "linkedin", "youtube", "other"]
 
 
 class ActivityEvent(BaseModel):
@@ -54,6 +54,10 @@ class ProfileInput(BaseModel):
     image_base64: str | None = None
     image_filename: str | None = None
     sample_id: str | None = None
+    private_account: bool = False
+    post_timestamps: list[str] = Field(default_factory=list)
+    follower_usernames: list[str] = Field(default_factory=list)
+    comment_samples: list[str] = Field(default_factory=list)
 
     @field_validator("username")
     @classmethod
@@ -97,6 +101,27 @@ class ProfileInput(BaseModel):
         if not (lowered.startswith("http://") or lowered.startswith("https://")):
             raise ValueError("Profile URL must start with http:// or https://")
         return value[:400]
+
+    @field_validator("comment_samples")
+    @classmethod
+    def limit_comments(cls, value: list[str]) -> list[str]:
+        return [item.strip()[:280] for item in value[:40] if item and item.strip()]
+
+    @field_validator("follower_usernames")
+    @classmethod
+    def limit_followers(cls, value: list[str]) -> list[str]:
+        return [item.strip().lstrip("@")[:80] for item in value[:40] if item and item.strip()]
+
+    @field_validator("post_timestamps")
+    @classmethod
+    def limit_timestamps(cls, value: list[str]) -> list[str]:
+        return [item.strip()[:40] for item in value[:80] if item and item.strip()]
+
+    @field_validator("platform")
+    @classmethod
+    def normalize_platform(cls, value: str) -> str:
+        lowered = (value or "instagram").lower()
+        return lowered
 
     @model_validator(mode="after")
     def sync_link_flag(self) -> "ProfileInput":

@@ -16,7 +16,7 @@ from app.analysis.network import build_network
 from app.analysis.profile_features import analyze_profile_features
 from app.analysis.purpose import classify_purpose
 from app.analysis.recommendations import build_recommendations
-from app.analysis.scoring import combine_scores, risk_level
+from app.analysis.scoring import combine_scores
 from app.analysis.timeline import build_timeline
 from app.analysis.username import analyze_username
 from app.schemas.analysis import (
@@ -31,10 +31,10 @@ from app.schemas.analysis import (
 from app.schemas.profile import ProfileInput
 
 DISCLAIMER = (
-    "FakeGuard estimates risk with heuristic signals plus a Random Forest model trained on 4,000 "
-    "labeled synthetic profiles, and it inspects the supplied activity timeline. It still cannot "
-    "guarantee that an account is fake or genuine. Live Instagram/X APIs are not used: those "
-    "platforms require approved developer apps and prohibit scraping."
+    "This analysis is probabilistic and should not be treated as proof that an account is fake, "
+    "fraudulent, malicious, or controlled by automation. FakeGuard estimates patterns from "
+    "voluntarily supplied observable signals, with calibrated ensemble models trained on synthetic "
+    "archetypes. It does not require social-media credentials and does not access private account data."
 )
 
 
@@ -78,27 +78,47 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
     if impersonation.detected:
         heuristic_probability = min(100.0, round(heuristic_probability + min(22.0, impersonation.similarity * 0.22), 1))
 
+    from app.intelligence.pipeline import fuse_authenticity
     from app.ml.predictor import ModelPredictor
 
-    ml = ModelPredictor().predict(profile, {**raw_scores, "history": history["score"]}, history)
-    if ml:
-        probability = round(min(100.0, 0.62 * ml["ml_probability"] + 0.38 * heuristic_probability), 1)
+    ml_bundle = ModelPredictor().predict(profile)
+    fused = fuse_authenticity(
+        profile,
+        cluster_risk=cluster.risk,
+        cluster_size=cluster.size,
+        impersonation_detected=impersonation.detected,
+        impersonation_similarity=impersonation.similarity,
+        impersonation_match=impersonation.matched_account,
+        image_risk=image_risk_score(image),
+        image_present=bool(profile.image_base64),
+        ml=ml_bundle,
+    )
+    probability = fused["inauthenticity_probability"]
+    level = fused["risk_level"]
+    if ml_bundle:
         model_info = ModelInfo(
-            source="random_forest+heuristics",
-            algorithm=ml["algorithm"],
-            ml_probability=ml["ml_probability"],
-            heuristic_probability=heuristic_probability,
+            source="hybrid-ensemble",
+            algorithm=ml_bundle.get("algorithm") or "hybrid-ensemble",
+            ml_probability=fused.get("ml_calibrated"),
+            heuristic_probability=fused.get("rule_risk"),
+            logistic_probability=fused.get("ml_logistic"),
+            anomaly_probability=fused.get("ml_anomaly"),
             available=True,
+            calibration=ml_bundle.get("calibration") or "isotonic",
+            model_version=fused["model_version"],
+            feature_schema=fused["feature_schema"],
+            analysis_engine=fused["analysis_engine"],
         )
     else:
-        probability = heuristic_probability
         model_info = ModelInfo(
-            source="heuristic_fallback",
-            algorithm="weighted-heuristics",
-            heuristic_probability=heuristic_probability,
+            source="rule+bayes-fallback",
+            algorithm="evidence-weighted-fusion",
+            heuristic_probability=fused.get("rule_risk"),
             available=False,
+            model_version=fused["model_version"],
+            feature_schema=fused["feature_schema"],
+            analysis_engine=fused["analysis_engine"],
         )
-    level = risk_level(probability)
 
     purpose, top_purposes = classify_purpose(
         profile,
@@ -182,6 +202,23 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         impersonation=impersonation,
         model=model_info,
         history_signals=history,
+        authenticity_score=fused["authenticity_score"],
+        inauthenticity_probability=fused["inauthenticity_probability"],
+        classification=fused["classification"],
+        confidence=fused["confidence"],
+        uncertainty=fused["uncertainty"],
+        uncertainty_label=fused["uncertainty_label"],
+        uncertainty_interval=fused["uncertainty_interval"],
+        evidence_sufficiency=fused["evidence_sufficiency"],
+        ood_score=fused["ood_score"],
+        domain_scores=fused["domain_scores"],
+        top_positive_signals=fused["top_positive_signals"],
+        top_risk_signals=fused["top_risk_signals"],
+        evidence_waterfall=fused["evidence_waterfall"],
+        counterfactuals=fused["counterfactuals"],
+        explanation=fused["explanation"],
+        limitations=fused["limitations"],
+        signal_hardness=fused["signal_hardness"],
         disclaimer=DISCLAIMER,
         created_at=datetime.utcnow(),
     )

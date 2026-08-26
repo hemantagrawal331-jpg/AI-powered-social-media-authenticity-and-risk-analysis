@@ -1,4 +1,4 @@
-export type Platform = "instagram" | "twitter" | "facebook" | "tiktok" | "linkedin";
+export type Platform = "instagram" | "twitter" | "x" | "facebook" | "tiktok" | "linkedin" | "youtube" | "other";
 
 export interface ProfileInput {
   username: string;
@@ -29,6 +29,10 @@ export interface ProfileInput {
   image_base64?: string | null;
   image_filename?: string | null;
   sample_id?: string | null;
+  private_account?: boolean;
+  post_timestamps?: string[];
+  follower_usernames?: string[];
+  comment_samples?: string[];
 }
 
 export interface FeatureBreakdown {
@@ -178,9 +182,60 @@ export interface AnalysisResult {
     algorithm: string;
     ml_probability: number | null;
     heuristic_probability: number | null;
+    logistic_probability?: number | null;
+    anomaly_probability?: number | null;
     available: boolean;
+    calibration?: string;
+    model_version?: string;
+    feature_schema?: string;
+    analysis_engine?: string;
   };
   history_signals?: Record<string, unknown>;
+  authenticity_score?: number;
+  inauthenticity_probability?: number;
+  classification?: string;
+  confidence?: string;
+  uncertainty?: number;
+  uncertainty_label?: string;
+  uncertainty_interval?: number;
+  evidence_sufficiency?: number;
+  ood_score?: number;
+  domain_scores?: Record<
+    string,
+    {
+      score: number;
+      risk: number;
+      confidence: number;
+      evidence_count: number;
+      missing_data_ratio: number;
+      explanations: string[];
+    }
+  >;
+  top_positive_signals?: {
+    signal_name: string;
+    direction: string;
+    strength: number;
+    domain: string;
+    statistical_evidence: string;
+    human_explanation: string;
+    observed?: string;
+    expected?: string;
+  }[];
+  top_risk_signals?: {
+    signal_name: string;
+    direction: string;
+    strength: number;
+    domain: string;
+    statistical_evidence: string;
+    human_explanation: string;
+    observed?: string;
+    expected?: string;
+  }[];
+  evidence_waterfall?: { label: string; delta: number; value: number; kind: string }[];
+  counterfactuals?: string[];
+  explanation?: string;
+  limitations?: string[];
+  signal_hardness?: { hard_to_fake?: number; easy_to_fake_with_llm?: number };
   disclaimer: string;
   created_at: string;
 }

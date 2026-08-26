@@ -36,17 +36,21 @@ export function ModelLab() {
         </p>
         <h1 className="mt-2 font-display text-3xl">Training data, validation, history, APIs</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-400">
-          FakeGuard now trains a Random Forest on 4,000 labeled synthetic profiles, scores supplied
-          timelines, and stores analyst labels. Live Instagram/X fetch is still off — those platforms
-          require approved apps and do not allow scraping.
+          Holdout metrics are from overlapping synthetic archetypes (not live Instagram). Sophisticated
+          bots were held out of training — that adversarial AUC is expected to be weak. Live
+          Instagram/X fetch is off.
         </p>
       </div>
       <ErrorBanner message={error} />
       <div className="grid gap-4 md:grid-cols-4">
         <Stat label="Holdout accuracy" value={pct(data?.accuracy)} />
-        <Stat label="Precision" value={pct(data?.precision)} />
-        <Stat label="Recall" value={pct(data?.recall)} />
+        <Stat label="F1" value={pct(data?.f1)} />
+        <Stat label="PR-AUC" value={pct(data?.pr_auc)} />
         <Stat label="ROC-AUC" value={pct(data?.roc_auc)} />
+        <Stat label="Brier (lower better)" value={num(data?.brier)} />
+        <Stat label="ECE (lower better)" value={num(data?.ece)} />
+        <Stat label="Adv. metadata AUC" value={pct(data?.adversarial_metadata_auc)} />
+        <Stat label="Adv. content AUC" value={pct(data?.adversarial_content_only_auc)} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard title="Confusion matrix (test set)">
@@ -106,6 +110,11 @@ export function ModelLab() {
 function pct(value: unknown) {
   if (typeof value !== "number") return "—";
   return `${Math.round(value * 1000) / 10}%`;
+}
+
+function num(value: unknown) {
+  if (typeof value !== "number") return "—";
+  return String(Math.round(value * 1000) / 1000);
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

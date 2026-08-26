@@ -32,8 +32,12 @@ export function Sidebar() {
         </div>
         <div>
           <p className="font-display text-lg font-semibold tracking-tight">FakeGuard AI</p>
-          <p className="text-xs text-slate-400">Authenticity & risk analysis</p>
+          <p className="text-xs text-slate-400">Social account intelligence</p>
         </div>
+      </div>
+      <div className="mb-6 flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] text-emerald-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        SYSTEM STATUS · LIVE
       </div>
       <nav className="space-y-1">
         {links.map(({ to, label, icon: Icon }) => (
@@ -55,7 +59,7 @@ export function Sidebar() {
         ))}
       </nav>
       <p className="mt-auto text-[11px] leading-5 text-slate-500">
-        Prototype with a trained Random Forest on synthetic labels. No social-media logins. No scraping.
+        Hybrid ensemble v2. No social-media logins. No scraping. Missing fields lower confidence, not risk.
       </p>
     </aside>
   );
