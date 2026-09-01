@@ -177,6 +177,7 @@ def train(count: int = 20000) -> dict:
     )
     metrics["feature_importances"] = importances[:16]
     metrics["fairness_slices"] = _fairness_slices(x_test, y_test, proba, FEATURE_NAMES)
+    metrics["temporal_split"] = _temporal_eval(rows, _blend)
 
     portable = {
         "type": "logistic",
@@ -226,10 +227,38 @@ def _fairness_slices(x_test, y_test, proba, names: list[str]) -> dict:
     age = x_test[:, idx["account_age_days"]]
     digits = x_test[:, idx["username_digit_ratio"]]
     freq = x_test[:, idx["posting_frequency"]]
+    followers = x_test[:, idx["followers_log"]]
+    private = x_test[:, idx["private_account"]]
+    lang = x_test[:, idx["language_consistency"]] if "language_consistency" in idx else None
     rate(age < 45, "new_accounts")
     rate(digits >= 0.3, "numeric_usernames")
     rate(freq >= 8, "high_frequency_posters")
+    rate(followers <= 4.6, "low_follower_accounts")  # log1p(100) ≈ 4.615
+    rate(private >= 0.5, "private_accounts")
+    if lang is not None:
+        rate(lang < 0.9, "multilingual_or_mixed")
     return slices
+
+
+def _temporal_eval(rows, blend) -> dict:
+    """Train on older accounts, test on newer ones. Missing age is excluded."""
+    import numpy as np
+    from sklearn.ensemble import RandomForestClassifier
+
+    aged = [(extract_vector(p), y, p.account_age_days) for p, y, _a in rows if p.account_age_days is not None]
+    if len(aged) < 200:
+        return {"available": False}
+    aged.sort(key=lambda item: -item[2])
+    cut = int(len(aged) * 0.7)
+    x_old = np.asarray([item[0] for item in aged[:cut]])
+    y_old = np.asarray([item[1] for item in aged[:cut]])
+    x_new = np.asarray([item[0] for item in aged[cut:]])
+    y_new = np.asarray([item[1] for item in aged[cut:]])
+    model = RandomForestClassifier(n_estimators=60, max_depth=10, random_state=42, n_jobs=-1)
+    model.fit(x_old, y_old)
+    proba = model.predict_proba(x_new)[:, 1]
+    pred = (proba >= 0.38).astype(int)
+    return {"available": True, **_metrics(y_new, pred, proba, prefix="temporal_")}
 
 
 if __name__ == "__main__":

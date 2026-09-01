@@ -10,13 +10,16 @@ from app.intelligence.config import (
     MODEL_VERSION,
     PRIOR_INAUTHENTIC,
 )
+from app.intelligence.counterfactuals import build_counterfactuals
 from app.intelligence.domains import (
     DomainScore,
     score_anomaly_domain,
     score_content,
+    score_coordination_domain,
     score_engagement,
     score_identity,
     score_impersonation,
+    score_language,
     score_media,
     score_network,
     score_profile,
@@ -54,29 +57,12 @@ def _narrative(classification: str, probability: float, confidence: str, evidenc
     )
 
 
-def _counterfactuals(domains: list[DomainScore], probability: float) -> list[str]:
-    risky = sorted([d for d in domains if d.risk >= 45 and d.confidence > 0.2], key=lambda d: -d.risk)
-    if not risky:
-        return [
-            "No single domain is dominating the estimate. Additional timestamps or captions would mainly change confidence, not the point estimate."
-        ]
-    items = []
-    for domain in risky[:3]:
-        items.append(
-            f"The estimate is pulled up by {domain.name} risk ({domain.risk:.0f}/100). "
-            f"If that domain moved into the ordinary band (~30), calibrated risk would likely fall. "
-            f"This is a model-based counterfactual, not a recommendation to manipulate a live profile."
-        )
-    if probability >= 0.5:
-        items.append("Supplying a posting timeline and per-post likes would narrow the uncertainty interval even if the point estimate stayed similar.")
-    return items
-
-
 def fuse_authenticity(
     profile: ProfileInput,
     *,
     cluster_risk: float = 0.0,
     cluster_size: int = 0,
+    coordination: dict | None = None,
     impersonation_detected: bool = False,
     impersonation_similarity: float = 0.0,
     impersonation_match: str | None = None,
@@ -92,6 +78,8 @@ def fuse_authenticity(
     network = score_network(profile, cluster_risk, cluster_size)
     impersonation = score_impersonation(profile, impersonation_detected, impersonation_similarity, impersonation_match)
     media = score_media(profile, image_risk, image_present)
+    language = score_language(profile)
+    coordination_domain = score_coordination_domain(coordination)
 
     calibrated = (ml or {}).get("calibrated")
     logistic = (ml or {}).get("logistic")
@@ -99,12 +87,27 @@ def fuse_authenticity(
     ood = float((ml or {}).get("ood") or 0.0)
     anomaly_domain = score_anomaly_domain(anomaly)
 
-    domains = [identity, profile_s, engagement, temporal, content, network, impersonation, media, anomaly_domain]
+    domains = [
+        identity,
+        profile_s,
+        engagement,
+        temporal,
+        content,
+        network,
+        impersonation,
+        media,
+        anomaly_domain,
+        language,
+        coordination_domain,
+    ]
     rule_risk, domain_weights = fuse_domains(domains)
     rule_risk = bayesian_adjust(rule_risk, domains)
-    hot = sum(1 for d in domains if d.risk >= 38 and d.confidence > 0.2 and d.missing_data_ratio < 0.9)
+    hot = sum(1 for d in domains if d.risk >= 36 and d.confidence > 0.2 and d.missing_data_ratio < 0.9)
     if hot >= 2:
         rule_risk = min(1.0, rule_risk + 0.16 + 0.04 * (hot - 2))
+    lexical = next((d for d in domains if d.name == "content" and d.risk >= 50), None)
+    if lexical:
+        rule_risk = min(1.0, rule_risk + 0.10)
     fused, ensemble_weights = ensemble_probability(calibrated, logistic, anomaly, rule_risk)
 
     groups = evidence_groups(profile)
@@ -158,7 +161,13 @@ def fuse_authenticity(
         "top_positive_signals": [s.__dict__ for s in positive[:6]],
         "top_risk_signals": [s.__dict__ for s in risk_signals[:6]],
         "evidence_waterfall": waterfall(PRIOR_INAUTHENTIC, domains, fused),
-        "counterfactuals": _counterfactuals(domains, fused),
+        "counterfactuals": build_counterfactuals(domains, fused),
+        "language_analysis": {
+            "bio_language": language.explanations,
+            "consistency": language.confidence,
+            "risk": language.risk,
+        },
+        "coordination": coordination or {"coordination_score": 0.0, "category": "LOW_COORDINATION", "pairs": []},
         "explanation": _narrative(code, fused, confidence, evidence),
         "limitations": list(LIMITATIONS),
         "model_version": MODEL_VERSION,

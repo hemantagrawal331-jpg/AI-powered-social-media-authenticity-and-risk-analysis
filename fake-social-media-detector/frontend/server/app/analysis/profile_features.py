@@ -7,41 +7,43 @@ from app.utils.sanitize import clamp, safe_ratio
 
 
 def analyze_profile_features(profile: ProfileInput) -> dict:
-    completeness = safe_ratio(profile.profile_fields_completed, profile.total_profile_fields) * 100
+    completed = profile.profile_fields_completed
+    completeness = safe_ratio(completed, profile.total_profile_fields) * 100 if completed is not None else None
     score = 12.0
     reasons: list[str] = []
     features: list[dict] = []
+    age = profile.account_age_days
+    followers = profile.followers
+    posts = profile.posts
 
-    if completeness < 40:
+    if completeness is not None and completeness < 40:
         score += 22
         reasons.append("Profile is sparsely filled out")
-    elif completeness >= 75:
+    elif completeness is not None and completeness >= 75:
         score -= 6
 
-    if not profile.has_profile_picture:
+    if profile.has_profile_picture is False:
         score += 16
         reasons.append("No profile picture")
     if not profile.bio.strip():
-        score += 10
-        reasons.append("Missing biography")
+        reasons.append("Biography was not supplied (not scored as promotional risk).")
     if not profile.display_name.strip():
-        score += 6
-        reasons.append("Missing display name")
+        reasons.append("Display name was not supplied.")
 
     age_score = _age_score(profile)
-    if profile.account_age_days < 30:
-        reasons.append(f"Very new account ({profile.account_age_days} days)")
-    elif profile.account_age_days < 90 and profile.followers >= 5000:
+    if age is not None and age < 30:
+        reasons.append(f"Very new account ({age} days)")
+    elif age is not None and age < 90 and followers is not None and followers >= 5000:
         reasons.append("Large audience on a relatively new account")
 
-    if profile.posts == 0 and profile.followers >= 200:
+    if posts is not None and followers is not None and posts == 0 and followers >= 200:
         score += 18
         reasons.append("Followers exist but there is no public content")
-    elif profile.posts <= 3 and profile.followers >= 2000:
+    elif posts is not None and followers is not None and posts <= 3 and followers >= 2000:
         score += 14
         reasons.append("Very few posts relative to audience size")
 
-    if profile.account_age_days < 30 and profile.followers >= 8000:
+    if age is not None and followers is not None and age < 30 and followers >= 8000:
         score += 20
         reasons.append("Large audience assembled on a very new account")
 
@@ -52,22 +54,22 @@ def analyze_profile_features(profile: ProfileInput) -> dict:
     score = clamp(score)
     features.extend(
         [
-            _row("Followers", f"{profile.followers:,}", _count_risk(profile.followers, profile.account_age_days), "Public follower count supplied by the user."),
-            _row("Following", f"{profile.following:,}", "Info", "Accounts this profile follows."),
-            _row("Posts", f"{profile.posts:,}", "Low" if profile.posts <= 3 and profile.followers >= 2000 else "Info", "Public content volume."),
-            _row("Account age (days)", profile.account_age_days, _age_band(profile.account_age_days), "Younger accounts have a thinner trust history."),
-            _row("Profile picture", "Yes" if profile.has_profile_picture else "No", "High" if not profile.has_profile_picture else "Minimal", "Presence only — not identity verification."),
-            _row("Bio length", len(profile.bio), "Low" if len(profile.bio) < 8 else "Minimal", "Short bios can be normal or evasive."),
+            _row("Followers", "—" if followers is None else f"{followers:,}", _count_risk(followers, age), "Public follower count supplied by the user."),
+            _row("Following", "—" if profile.following is None else f"{profile.following:,}", "Info", "Accounts this profile follows."),
+            _row("Posts", "—" if posts is None else f"{posts:,}", "Low" if posts is not None and followers is not None and posts <= 3 and followers >= 2000 else "Info", "Public content volume."),
+            _row("Account age (days)", "not supplied" if age is None else age, _age_band(age), "Younger accounts have a thinner trust history. Missing age is ignored."),
+            _row("Profile picture", "Yes" if profile.has_profile_picture else "No" if profile.has_profile_picture is False else "unknown", "High" if profile.has_profile_picture is False else "Minimal", "Presence only — not identity verification."),
+            _row("Bio length", len(profile.bio), "Info" if not profile.bio else "Minimal", "Short bios can be normal or evasive."),
             _row("Verified", "Yes" if profile.verified else "No", "Info", "Platform badge as provided by the user."),
-            _row("External links", profile.external_links, "Moderate" if profile.external_links >= 2 else "Info", "Outbound links increase phishing surface."),
-            _row("Profile completeness", f"{completeness:.0f}%", "High" if completeness < 40 else "Minimal", "Share of completed profile fields."),
+            _row("External links", profile.external_links if profile.external_links is not None else "—", "Moderate" if (profile.external_links or 0) >= 2 else "Info", "Outbound links increase phishing surface."),
+            _row("Profile completeness", "—" if completeness is None else f"{completeness:.0f}%", "High" if completeness is not None and completeness < 40 else "Minimal", "Share of completed profile fields."),
         ]
     )
 
     return {
         "score": round(score, 1),
         "age_score": round(age_score, 1),
-        "completeness": round(completeness, 1),
+        "completeness": None if completeness is None else round(completeness, 1),
         "risk_level": _band(score),
         "reasons": reasons or ["Profile metadata looks reasonably complete"],
         "features": features,
@@ -77,6 +79,8 @@ def analyze_profile_features(profile: ProfileInput) -> dict:
 
 def _age_score(profile: ProfileInput) -> float:
     days = profile.account_age_days
+    if days is None:
+        return 0.0
     score = 8.0
     if days <= 7:
         score = 88
@@ -92,14 +96,16 @@ def _age_score(profile: ProfileInput) -> float:
         score = 18
     else:
         score = 8
-    if days < 45 and profile.followers >= 8000:
+    if days < 45 and profile.count("followers") >= 8000:
         score = clamp(score + 12)
     if days > 700 and profile.verified:
         score = clamp(score - 6)
     return clamp(score)
 
 
-def _age_band(days: int) -> str:
+def _age_band(days: int | None) -> str:
+    if days is None:
+        return "Info"
     if days < 21:
         return "High"
     if days < 90:
@@ -107,7 +113,9 @@ def _age_band(days: int) -> str:
     return "Minimal"
 
 
-def _count_risk(followers: int, age_days: int) -> str:
+def _count_risk(followers: int | None, age_days: int | None) -> str:
+    if followers is None or age_days is None:
+        return "Info"
     if followers >= 10000 and age_days < 30:
         return "High"
     if followers >= 2000 and age_days < 21:

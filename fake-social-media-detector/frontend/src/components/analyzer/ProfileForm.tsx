@@ -112,7 +112,11 @@ export function ProfileForm({
           Verified
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={value.has_profile_picture} onChange={(e) => set("has_profile_picture", e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={value.has_profile_picture === true}
+            onChange={(e) => set("has_profile_picture", e.target.checked ? true : null)}
+          />
           Has profile picture
         </label>
       </div>
@@ -165,16 +169,17 @@ function NumberField({
   onChange,
 }: {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: number | null;
+  onChange: (value: number | null) => void;
 }) {
   return (
-    <Field label={label}>
+    <Field label={`${label} (optional)`}>
       <input
         type="number"
         min={0}
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        placeholder="Leave blank if unknown"
+        value={value === null || value === undefined || !Number.isFinite(value) ? "" : value}
+        onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
         className="input"
       />
     </Field>

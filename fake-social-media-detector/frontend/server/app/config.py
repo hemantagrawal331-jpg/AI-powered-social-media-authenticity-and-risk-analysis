@@ -33,7 +33,7 @@ REPORT_DIR = WRITABLE_DIR / "reports"
 
 class Settings(BaseSettings):
     app_name: str = "FakeGuard AI"
-    app_version: str = "2.0.0"
+    app_version: str = "2.1.0"
     api_prefix: str = "/api"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     database_url: str = ""

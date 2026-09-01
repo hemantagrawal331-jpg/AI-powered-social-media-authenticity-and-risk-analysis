@@ -227,17 +227,24 @@ def tokenize(text: str) -> list[str]:
 
 
 def tfidf_cosine(a: str, b: str) -> float:
-    """Lightweight cosine over tf-idf-like weights (idf ≈ 1 / df within the pair)."""
+    """Lightweight cosine over tf-idf-like weights (idf ≈ 1 / df within the pair).
+
+    Pairwise IDF is 0 when a term appears in both documents, so identical
+    strings would otherwise collapse to the zero vector. Those are treated
+    as cosine 1. Smoothing (`+1`) keeps shared terms informative.
+    """
     ta, tb = tokenize(a), tokenize(b)
     if not ta or not tb:
         return 0.0
+    if ta == tb:
+        return 1.0
     vocab = set(ta) | set(tb)
     df = {w: int(w in ta) + int(w in tb) for w in vocab}
 
     def vec(tokens: list[str]) -> dict[str, float]:
         tf = Counter(tokens)
         n = len(tokens)
-        return {w: (tf[w] / n) * math.log(2 / df[w]) for w in vocab}
+        return {w: (tf[w] / n) * math.log((2 + 1) / (df[w] + 1)) for w in vocab}
 
     va, vb = vec(ta), vec(tb)
     dot = sum(va[w] * vb[w] for w in vocab)

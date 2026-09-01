@@ -7,10 +7,10 @@ from app.utils.sanitize import clamp, safe_ratio
 
 
 def analyze_engagement(profile: ProfileInput) -> dict:
-    followers = max(profile.followers, 0)
-    following = max(profile.following, 0)
-    likes = max(profile.average_likes, 0)
-    comments = max(profile.average_comments, 0)
+    followers = max(profile.count("followers"), 0)
+    following = max(profile.count("following"), 0)
+    likes = max(profile.measure("average_likes"), 0)
+    comments = max(profile.measure("average_comments"), 0)
 
     engagement_rate = safe_ratio(likes + comments, followers) * 100
     likes_to_followers = safe_ratio(likes, followers) * 100

@@ -1,7 +1,9 @@
 """Canonical numeric feature vector shared by training and live inference.
 
 Missing optional groups are flagged separately. Zeros that are structurally
-possible (0 followers) are *not* treated as missing.
+possible (0 followers) are *not* treated as missing. Unobserved age/frequency
+are imputed to a documented neutral value so the classifier does not treat
+"field omitted" as "brand-new hyperactive account."
 """
 
 from __future__ import annotations
@@ -9,8 +11,16 @@ from __future__ import annotations
 import math
 import re
 
-from app.intelligence.config import ENGAGEMENT_COHORTS, KNOWN_HANDLES, SPAM_TERMS
+from app.intelligence.config import (
+    AGE_IMPUTE_NEUTRAL,
+    ENGAGEMENT_COHORTS,
+    FREQ_IMPUTE_NEUTRAL,
+    KNOWN_HANDLES,
+    SPAM_TERMS,
+)
 from app.intelligence import stats
+from app.intelligence.language import language_consistency
+from app.intelligence.username_features import username_structure
 from app.schemas.profile import ProfileInput
 
 FEATURE_NAMES = [
@@ -54,6 +64,12 @@ FEATURE_NAMES = [
     "follower_sample_entropy",
     "growth_spike",
     "private_account",
+    "age_observed",
+    "freq_observed",
+    "username_repeat_ratio",
+    "username_separator_ratio",
+    "language_consistency",
+    "language_switch",
 ]
 
 
@@ -95,13 +111,14 @@ def _suffix_len(username: str) -> int:
 def evidence_groups(profile: ProfileInput) -> dict[str, bool]:
     return {
         "identity": bool(profile.username),
-        "profile": profile.account_age_days > 0 or profile.posts > 0 or bool(profile.bio),
-        "graph": profile.followers > 0 or profile.following > 0,
-        "engagement": profile.average_likes > 0 or bool(profile.engagement_history),
+        "profile": profile.account_age_days is not None or (profile.posts or 0) > 0 or bool(profile.bio),
+        "graph": profile.followers is not None or profile.following is not None,
+        "engagement": profile.average_likes is not None or bool(profile.engagement_history),
         "content": bool(profile.bio or profile.captions),
-        "temporal": bool(profile.recent_activity or profile.engagement_history or getattr(profile, "post_timestamps", [])),
-        "network": bool(getattr(profile, "follower_usernames", [])),
-        "media": bool(profile.image_base64),
+        "temporal": bool(profile.recent_activity or profile.engagement_history or profile.post_timestamps),
+        "network": bool(profile.follower_usernames),
+        "media": bool(profile.image_base64) or profile.has_profile_picture is not None,
+        "language": bool(profile.bio or profile.captions),
     }
 
 
@@ -111,35 +128,40 @@ def evidence_sufficiency(profile: ProfileInput) -> float:
         "identity": 0.12,
         "profile": 0.14,
         "graph": 0.16,
-        "engagement": 0.18,
+        "engagement": 0.16,
         "content": 0.12,
-        "temporal": 0.16,
+        "temporal": 0.14,
         "network": 0.08,
         "media": 0.04,
+        "language": 0.04,
     }
     return round(sum(weights[k] for k, present in groups.items() if present), 3)
 
 
 def extract_vector(profile: ProfileInput) -> list[float]:
-    followers = max(profile.followers, 0)
-    following = max(profile.following, 0)
-    posts = max(profile.posts, 0)
-    age = max(profile.account_age_days, 0)
-    likes = max(profile.average_likes, 0.0)
-    comments = max(profile.average_comments, 0.0)
-    shares = max(profile.average_shares, 0.0)
+    followers = profile.count("followers")
+    following = profile.count("following")
+    posts = profile.count("posts")
+    age_observed = 1.0 if profile.account_age_days is not None else 0.0
+    age = float(profile.account_age_days) if profile.account_age_days is not None else AGE_IMPUTE_NEUTRAL
+    likes = profile.measure("average_likes")
+    comments = profile.measure("average_comments")
+    shares = profile.measure("average_shares")
     er = (likes + comments + shares) / max(followers, 1)
+    if profile.engagement_signals and profile.engagement_signals.engagement_rate is not None:
+        er = profile.engagement_signals.engagement_rate
     expected, std = expected_engagement(followers)
     deviation = (er - expected) / max(std, 1e-6)
     like_series = [p.likes for p in profile.engagement_history if p.likes is not None]
-    comment_series = [p.comments for p in profile.engagement_history]
     engagement_cv = stats.coefficient_of_variation(like_series) if len(like_series) >= 2 else 0.0
+    if profile.engagement_signals and profile.engagement_signals.engagement_volatility is not None:
+        engagement_cv = profile.engagement_signals.engagement_volatility
     like_cv = engagement_cv
     _, benford_p, _ = stats.benford_chi_square(like_series)
     captions = list(profile.captions or [])
     hashtags = list(profile.hashtags or [])
     caption_blob = " ".join(captions)
-    timestamps = list(getattr(profile, "post_timestamps", []) or [])
+    timestamps = list(profile.post_timestamps or [])
     hours: list[int] = []
     hours_float: list[float] = []
     for index, stamp in enumerate(timestamps):
@@ -153,19 +175,51 @@ def extract_vector(profile: ProfileInput) -> list[float]:
         hours = [index % 24 for index, _ in enumerate(profile.recent_activity)]
         hours_float = [float(index) for index, _ in enumerate(profile.recent_activity)]
     interval = stats.inter_event_stats(hours_float)
-    follower_names = list(getattr(profile, "follower_usernames", []) or [])
+    if profile.temporal_signals:
+        if profile.temporal_signals.activity_entropy is not None and not hours:
+            interval = interval
+        if profile.temporal_signals.posting_burstiness is not None:
+            interval["burstiness"] = profile.temporal_signals.posting_burstiness
+        if profile.temporal_signals.periodicity_score is not None:
+            interval["autocorr"] = profile.temporal_signals.periodicity_score
+    follower_names = list(profile.follower_usernames or [])
     sample_entropy = stats.mean([stats.normalized_entropy(name) for name in follower_names]) if follower_names else 0.0
     growth = [abs(event.delta) for event in profile.follower_growth_events]
     growth_spike = 1.0 if any(delta >= 800 for delta in growth) else 0.0
     username = profile.username or ""
+    structure = username_structure(username, profile.display_name or "")
     brand_sim = max((stats.jaro_winkler(username, handle) for handle in KNOWN_HANDLES), default=0.0)
     url_density = sum(1 for text in [profile.bio, *captions] if "http" in (text or "").lower()) / max(len(captions) + 1, 1)
+    if profile.content_signals:
+        if profile.content_signals.duplicate_content_rate is not None:
+            caption_dup = profile.content_signals.duplicate_content_rate
+        else:
+            caption_dup = stats.duplicate_rate(captions)
+        if profile.content_signals.url_rate is not None:
+            url_density = profile.content_signals.url_rate
+        if profile.content_signals.hashtag_density is not None:
+            hashtag_density = profile.content_signals.hashtag_density
+        else:
+            hashtag_density = len(hashtags) / max(len(tokenize_safe(caption_blob)), 1)
+    else:
+        caption_dup = stats.duplicate_rate(captions)
+        hashtag_density = len(hashtags) / max(len(tokenize_safe(caption_blob)), 1)
+    lang = language_consistency(profile)
+    freq_observed = 1.0 if profile.posting_frequency_per_week is not None else 0.0
+    freq = float(profile.posting_frequency_per_week) if profile.posting_frequency_per_week is not None else FREQ_IMPUTE_NEUTRAL
+    picture = 1.0 if profile.has_profile_picture else 0.0 if profile.has_profile_picture is False else 0.5
+    completed = profile.profile_fields_completed
+    completeness = (completed / max(profile.total_profile_fields, 1)) if completed is not None else 0.5
+
+    temporal_entropy = stats.hour_entropy(hours) if hours else 0.0
+    if profile.temporal_signals and profile.temporal_signals.activity_entropy is not None:
+        temporal_entropy = profile.temporal_signals.activity_entropy
 
     values = {
         "followers_log": _log1p(followers),
         "following_log": _log1p(following),
         "posts_log": _log1p(posts),
-        "account_age_days": float(age),
+        "account_age_days": age,
         "posts_per_day": posts / max(age, 1),
         "followers_per_day": followers / max(age, 1),
         "following_to_followers": following / max(followers, 1),
@@ -174,26 +228,26 @@ def extract_vector(profile: ProfileInput) -> list[float]:
         "bio_spam_hits": float(_spam_hits(profile.bio or "")),
         "emoji_ratio": _emoji_ratio(profile.bio or ""),
         "verified": 1.0 if profile.verified else 0.0,
-        "has_picture": 1.0 if profile.has_profile_picture else 0.0,
-        "external_links": float(profile.external_links),
-        "completeness": profile.profile_fields_completed / max(profile.total_profile_fields, 1),
+        "has_picture": picture,
+        "external_links": float(profile.count("external_links")),
+        "completeness": completeness,
         "engagement_rate": er,
         "engagement_deviation": deviation,
         "likes_comments_ratio": likes / max(comments, 1),
         "engagement_cv": engagement_cv,
-        "posting_frequency": float(profile.posting_frequency_per_week),
-        "username_entropy_norm": stats.normalized_entropy(username),
-        "username_digit_ratio": sum(ch.isdigit() for ch in username) / max(len(username), 1),
+        "posting_frequency": freq,
+        "username_entropy_norm": float(structure["normalized_entropy"]),
+        "username_digit_ratio": float(structure["digit_ratio"]),
         "username_special_ratio": sum(not ch.isalnum() for ch in username) / max(len(username), 1),
         "username_upper_ratio": sum(ch.isupper() for ch in username) / max(len(username), 1),
-        "username_suffix_len": float(_suffix_len(username)),
-        "username_display_sim": stats.jaro_winkler(username, profile.display_name or username),
+        "username_suffix_len": float(structure["numeric_suffix_length"]),
+        "username_display_sim": float(structure["display_name_similarity"]),
         "handle_brand_sim": brand_sim,
-        "caption_duplicate_rate": stats.duplicate_rate(captions),
-        "hashtag_density": len(hashtags) / max(len(tokenize_safe(caption_blob)), 1),
+        "caption_duplicate_rate": caption_dup,
+        "hashtag_density": hashtag_density,
         "caption_ttr": stats.type_token_ratio(caption_blob),
         "url_density": url_density,
-        "temporal_entropy": stats.hour_entropy(hours) if hours else 0.0,
+        "temporal_entropy": temporal_entropy,
         "interval_cv": interval["cv"],
         "burstiness": interval["burstiness"],
         "periodicity": max(0.0, interval["autocorr"]),
@@ -201,7 +255,13 @@ def extract_vector(profile: ProfileInput) -> list[float]:
         "benford_p": benford_p,
         "follower_sample_entropy": sample_entropy,
         "growth_spike": growth_spike,
-        "private_account": 1.0 if getattr(profile, "private_account", False) else 0.0,
+        "private_account": 1.0 if profile.private_account else 0.0,
+        "age_observed": age_observed,
+        "freq_observed": freq_observed,
+        "username_repeat_ratio": float(structure["repeated_character_ratio"]),
+        "username_separator_ratio": float(structure["separator_ratio"]),
+        "language_consistency": float(lang["consistency"]),
+        "language_switch": 1.0 if lang["abrupt_switch"] else 0.0,
     }
     return [float(values[name]) for name in FEATURE_NAMES]
 

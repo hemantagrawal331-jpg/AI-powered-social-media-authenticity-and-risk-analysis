@@ -63,7 +63,7 @@ def detect_impersonation(profile: ProfileInput) -> ImpersonationInfo:
         if "official" in profile.username.lower() and not profile.verified:
             signals.append("Uses 'official' while unverified")
             score += 8
-        if profile.account_age_days < 60 and name_sim >= 0.6:
+        if profile.account_age_days is not None and profile.account_age_days < 60 and name_sim >= 0.6:
             signals.append("Young account using a well-known name")
             score += 10
         if profile.username.lower() == ref["username"]:

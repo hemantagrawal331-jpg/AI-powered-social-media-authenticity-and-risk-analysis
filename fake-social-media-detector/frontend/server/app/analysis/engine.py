@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timedelta
 
 from app.analysis.behavior import analyze_behavior
 from app.analysis.bio import analyze_bio
 from app.analysis.cluster import detect_cluster
+from app.intelligence.coordination import score_against_samples
+from app.intelligence.language import language_consistency
+from app.intelligence.stats import inter_event_stats
 from app.analysis.content import analyze_content
 from app.analysis.engagement import analyze_engagement
 from app.analysis.historical import analyze_history
@@ -30,6 +34,12 @@ from app.schemas.analysis import (
 )
 from app.schemas.profile import ProfileInput
 
+def _input_hash(profile: ProfileInput) -> str:
+    payload = profile.model_dump(exclude={"image_base64", "image_filename"})
+    encoded = repr(sorted(payload.items())).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
+
 DISCLAIMER = (
     "This analysis is probabilistic and should not be treated as proof that an account is fake, "
     "fraudulent, malicious, or controlled by automation. FakeGuard estimates patterns from "
@@ -40,7 +50,7 @@ DISCLAIMER = (
 
 def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) -> AnalysisResult:
     username = analyze_username(profile.username, profile.verified)
-    bio = analyze_bio(profile.bio, verified=profile.verified, external_links=profile.external_links)
+    bio = analyze_bio(profile.bio, verified=profile.verified, external_links=profile.count("external_links"))
     engagement = analyze_engagement(profile)
     profile_meta = analyze_profile_features(profile)
     behavior = analyze_behavior(profile)
@@ -48,11 +58,29 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
     history = analyze_history(profile)
     image = analyze_image(
         profile.image_base64,
-        has_profile_picture=profile.has_profile_picture,
+        has_profile_picture=bool(profile.has_profile_picture),
         filename=profile.image_filename,
     )
     impersonation = detect_impersonation(profile)
     cluster = detect_cluster(profile, samples or [])
+    peer_profiles = []
+    for sample in (samples or [])[:12]:
+        data = sample.get("profile", sample)
+        try:
+            peer_profiles.append(ProfileInput(**{k: v for k, v in data.items() if k in ProfileInput.model_fields}))
+        except Exception:
+            continue
+    coordination = score_against_samples(profile, peer_profiles)
+    language = language_consistency(profile)
+    hours_float = []
+    for index, stamp in enumerate(profile.post_timestamps or []):
+        raw = str(stamp)
+        try:
+            hour = int(raw[11:13]) if len(raw) >= 13 and raw[11:13].isdigit() else index
+        except ValueError:
+            hour = index
+        hours_float.append(float(index * 8 + hour))
+    interval = inter_event_stats(hours_float)
 
     username_score = username["score"]
     if impersonation.detected:
@@ -86,6 +114,7 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         profile,
         cluster_risk=cluster.risk,
         cluster_size=cluster.size,
+        coordination=coordination,
         impersonation_detected=impersonation.detected,
         impersonation_similarity=impersonation.similarity,
         impersonation_match=impersonation.matched_account,
@@ -219,6 +248,10 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         explanation=fused["explanation"],
         limitations=fused["limitations"],
         signal_hardness=fused["signal_hardness"],
+        language_analysis=language,
+        coordination=coordination,
+        interval_stats=interval,
+        input_hash=_input_hash(profile),
         disclaimer=DISCLAIMER,
         created_at=datetime.utcnow(),
     )
@@ -320,7 +353,7 @@ def _engagement_series(profile: ProfileInput) -> list[EngagementSeriesPoint]:
         return [
             EngagementSeriesPoint(
                 date=point.date,
-                followers=point.followers or profile.followers,
+                followers=point.followers or profile.count("followers"),
                 likes=point.likes,
                 comments=point.comments,
             )
@@ -334,9 +367,9 @@ def _engagement_series(profile: ProfileInput) -> list[EngagementSeriesPoint]:
         points.append(
             EngagementSeriesPoint(
                 date=day.isoformat(),
-                followers=max(0, profile.followers * (0.82 + index * 0.03)),
-                likes=max(0, profile.average_likes * drift),
-                comments=max(0, profile.average_comments * drift),
+                followers=max(0, profile.count("followers") * (0.82 + index * 0.03)),
+                likes=max(0, profile.measure("average_likes") * drift),
+                comments=max(0, profile.measure("average_comments") * drift),
             )
         )
     return points

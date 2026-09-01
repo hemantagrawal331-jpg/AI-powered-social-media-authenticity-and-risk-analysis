@@ -28,7 +28,7 @@ export function RiskGauge({ value }: { value: number }) {
       </svg>
       <div className="absolute inset-x-0 bottom-1 text-center">
         <p className="font-display text-4xl font-bold">{Math.round(clamped)}%</p>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fake probability</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Inauthenticity risk</p>
       </div>
     </div>
   );

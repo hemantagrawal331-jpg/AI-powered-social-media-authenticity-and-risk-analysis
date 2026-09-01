@@ -8,7 +8,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.config import BACKEND_DIR, REPO_DIR
-from app.intelligence.vector import FEATURE_NAMES, extract_vector
+from app.intelligence.ood import combine_ood, feature_distance
+from app.intelligence.vector import FEATURE_NAMES, evidence_groups, extract_vector
 from app.schemas.profile import ProfileInput
 
 
@@ -135,9 +136,12 @@ class ModelPredictor:
                     raw = float(bundle["anomaly"].score_samples([aligned])[0])
                     # IsolationForest: less negative = more typical. Map to 0..1 anomaly.
                     anomaly_p = max(0.0, min(1.0, 1 / (1 + math.exp(raw * 3))))
-                    ood = anomaly_p
                 except Exception:
                     anomaly_p = None
+            groups = evidence_groups(profile)
+            missing_ratio = 1.0 - sum(1 for present in groups.values() if present) / max(len(groups), 1)
+            distance = feature_distance(aligned, means if isinstance(means, list) else None, stds if isinstance(stds, list) else None)
+            ood = combine_ood(anomaly=anomaly_p, feature_dist=distance, missing_ratio=missing_ratio)
             calibration = bundle.get("calibration") or "isotonic"
         elif load_portable():
             portable = load_portable()

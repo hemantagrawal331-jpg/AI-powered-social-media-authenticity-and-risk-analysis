@@ -23,7 +23,7 @@ def analyze_history(profile: ProfileInput) -> dict:
         spike_ratio = max(likes) / mean_likes if mean_likes > 0 else 0.0
 
     velocity = 0.0
-    if len(followers) >= 2 and profile.account_age_days > 0:
+    if len(followers) >= 2 and profile.account_age_days is not None and profile.account_age_days > 0:
         velocity = (followers[-1] - followers[0]) / max(profile.account_age_days, 1)
 
     divergence = 0.0
@@ -55,7 +55,7 @@ def analyze_history(profile: ProfileInput) -> dict:
     if divergence >= 30:
         score += 18
         reasons.append("Audience grew while engagement rate collapsed")
-    if profile.account_age_days < 30 and profile.followers >= 8000:
+    if profile.account_age_days is not None and profile.account_age_days < 30 and profile.count("followers") >= 8000:
         score += 12
         reasons.append("Large audience assembled with little history")
 

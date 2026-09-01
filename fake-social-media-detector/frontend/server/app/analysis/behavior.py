@@ -11,8 +11,18 @@ def analyze_behavior(profile: ProfileInput) -> dict:
     reasons: list[str] = []
     rows: list[dict] = []
     freq = profile.posting_frequency_per_week
+    age = profile.account_age_days
 
-    if freq >= 40:
+    if freq is None:
+        freq = 0.0
+        frequency_missing = True
+    else:
+        frequency_missing = False
+
+    if frequency_missing:
+        level = "Minimal"
+        reasons.append("Posting frequency was not supplied and was not treated as an anomaly.")
+    elif freq >= 40:
         score += 28
         level = "High"
         reasons.append(f"Very high posting frequency ({freq:.1f} posts/week)")
@@ -20,7 +30,7 @@ def analyze_behavior(profile: ProfileInput) -> dict:
         score += 16
         level = "Moderate"
         reasons.append("High posting cadence can indicate automation")
-    elif freq <= 0.05 and profile.followers >= 3000:
+    elif (not frequency_missing) and freq <= 0.05 and profile.count("followers") >= 3000:
         score += 14
         level = "Moderate"
         reasons.append("Almost no posting despite a large audience")
@@ -30,10 +40,10 @@ def analyze_behavior(profile: ProfileInput) -> dict:
     rows.append(
         _row(
             "Posting frequency",
-            f"{freq:.1f} / week",
+            "not supplied" if frequency_missing else f"{freq:.1f} / week",
             level,
-            "Extreme cadence is a common automation signal.",
-            70 if freq >= 40 else 40 if freq >= 20 else 15 if freq <= 0.05 else 8,
+            "Extreme cadence is a common automation signal. Missing cadence is ignored.",
+            0 if frequency_missing else (70 if freq >= 40 else 40 if freq >= 20 else 15 if freq <= 0.05 else 8),
         )
     )
 
@@ -65,23 +75,27 @@ def analyze_behavior(profile: ProfileInput) -> dict:
         )
     )
 
-    if profile.account_age_days <= 21 and (follower_spike or profile.followers >= 8000):
+    followers = profile.count("followers")
+    following = profile.count("following")
+    posts = profile.count("posts")
+    likes = profile.measure("average_likes")
+    if age is not None and age <= 21 and (follower_spike or followers >= 8000):
         score += 12
         reasons.append("Rapid audience assembly on a new account")
 
-    if profile.following >= 3000 and profile.account_age_days <= 30:
+    if following >= 3000 and age is not None and age <= 30:
         score += 14
         reasons.append("Large number of accounts followed in a short period")
 
-    automated = freq >= 25 or (freq >= 12 and not profile.bio.strip())
+    automated = (not frequency_missing) and (freq >= 25 or (freq >= 12 and not profile.bio.strip()))
     if automated:
         score += 10
         reasons.append("Posting pattern resembles scheduled/automated publishing")
 
     bot_like = (
         (profile.username.lower().startswith("user") and any(ch.isdigit() for ch in profile.username))
-        or (freq >= 30 and profile.average_likes < 5)
-        or (profile.followers >= 5000 and profile.posts <= 5 and freq >= 0)
+        or ((not frequency_missing) and freq >= 30 and likes < 5)
+        or (followers >= 5000 and posts <= 5 and not frequency_missing)
     )
     if bot_like:
         score += 12

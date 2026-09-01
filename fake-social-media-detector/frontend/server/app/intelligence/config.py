@@ -5,10 +5,15 @@ Citations in comments are design rationale, not claims of live-platform accuracy
 
 from __future__ import annotations
 
-MODEL_VERSION = "v2.0.0"
-FEATURE_SCHEMA = "v2"
+MODEL_VERSION = "v2.1.0"
+FEATURE_SCHEMA = "v2.1"
 ANALYSIS_ENGINE = "hybrid-ensemble"
 CALIBRATION_METHOD = "isotonic+platt-fallback"
+
+# Neutral imputes used only inside the numeric ML vector when a field is
+# missing. Scorers must still treat the field as absent (weight → 0).
+AGE_IMPUTE_NEUTRAL = 400.0
+FREQ_IMPUTE_NEUTRAL = 2.0
 
 # Literature range for inauthentic/bot prevalence is roughly 3–20% and is
 # platform- and era-dependent. This is a Bayesian *prior*, not a prediction.
@@ -30,15 +35,17 @@ INSUFFICIENT_EVIDENCE = 0.28  # evidence_sufficiency below this → withhold str
 # outweigh content because LLM-written bios collapse content-only detectors
 # (account-history RF AUC ~0.977 vs content-only ~0.830 in 2025 metadata studies).
 DOMAIN_BASE_WEIGHTS = {
-    "identity": 0.12,
-    "profile": 0.13,
-    "engagement": 0.18,
-    "temporal": 0.16,
-    "content": 0.10,
-    "network": 0.12,
+    "identity": 0.11,
+    "profile": 0.12,
+    "engagement": 0.16,
+    "temporal": 0.14,
+    "content": 0.12,
+    "network": 0.11,
     "impersonation": 0.06,
     "media": 0.03,
-    "anomaly": 0.10,
+    "anomaly": 0.09,
+    "language": 0.05,
+    "coordination": 0.04,
 }
 
 DOMAIN_RELIABILITY = {
@@ -46,11 +53,26 @@ DOMAIN_RELIABILITY = {
     "profile": 0.88,
     "engagement": 0.84,
     "temporal": 0.86,
-    "content": 0.72,  # still weaker than metadata, but not near-zero when text is present
+    "content": 0.80,  # lexical solicitation is usable; LLM-human bios remain weaker than metadata
     "network": 0.70,  # partial without a live graph
     "impersonation": 0.75,
     "media": 0.40,
     "anomaly": 0.72,
+    "language": 0.68,
+    "coordination": 0.62,
+}
+
+COORDINATION_WEIGHTS = {
+    "temporal": 0.28,
+    "content": 0.32,
+    "network": 0.22,
+    "behavioral": 0.18,
+}
+
+OOD_WEIGHTS = {
+    "anomaly": 0.45,
+    "distance": 0.35,
+    "missing": 0.20,
 }
 
 # Ensemble mix. Anomaly is *not* fake probability — it is down-weighted.

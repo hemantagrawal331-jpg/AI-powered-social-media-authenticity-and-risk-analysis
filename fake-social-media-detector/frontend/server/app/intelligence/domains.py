@@ -7,12 +7,14 @@ add risk.
 
 from __future__ import annotations
 
-import re
 import unicodedata
 from dataclasses import dataclass, field
 
 from app.intelligence.config import KNOWN_HANDLES, SPAM_TERMS
 from app.intelligence import stats
+from app.intelligence.graph import network_features
+from app.intelligence.language import language_consistency
+from app.intelligence.username_features import username_structure
 from app.intelligence.vector import evidence_groups, expected_engagement
 from app.schemas.profile import ProfileInput
 
@@ -90,31 +92,36 @@ def score_identity(profile: ProfileInput) -> DomainScore:
     username = profile.username or ""
     if not username:
         return DomainScore("identity", 50, 50, 0.0, 0, 1.0, ["Username missing; identity weight dropped."])
-    ent = stats.normalized_entropy(username)
-    digits = sum(ch.isdigit() for ch in username) / max(len(username), 1)
+    structure = username_structure(username, profile.display_name or "")
+    ent = float(structure["normalized_entropy"])
+    digits = float(structure["digit_ratio"])
+    suffix_len = float(structure["numeric_suffix_length"])
+    display_sim = float(structure["display_name_similarity"])
     specials = sum(not ch.isalnum() and ch not in "._" for ch in username)
-    suffix = re.search(r"(_?\d{4,})$", username)
-    display_sim = stats.jaro_winkler(username, profile.display_name or username)
     brand = max((stats.jaro_winkler(_normalize(username), handle) for handle in KNOWN_HANDLES), default=0.0)
     risk = 12.0
     reasons: list[str] = []
     signals: list[Signal] = []
+    extra = profile.username_history_signals
     # High entropy can be suspicious; low entropy templates can also be bots.
     if ent >= 0.92 and len(username) >= 10:
         risk += 18
         reasons.append("Username character distribution is unusually random for its length.")
         signals.append(Signal("username_entropy", "risk", 0.6, "identity", f"normalized entropy {ent:.2f}", reasons[-1], f"{ent:.2f}", "0.55–0.85"))
-    if digits >= 0.45 or (suffix and len(suffix.group(1)) >= 6):
+    if digits >= 0.45 or suffix_len >= 6:
         risk += 16
         reasons.append("Long numeric suffix is a common auto-generated handle pattern — not proof by itself.")
         signals.append(Signal("numeric_suffix", "risk", 0.55, "identity", f"digit ratio {digits:.2f}", reasons[-1], f"{digits:.2f}", "<0.25"))
     elif digits >= 0.25:
         risk += 6
+    if float(structure["repeated_character_ratio"]) >= 0.28 or (extra and extra.repeated_characters):
+        risk += 8
+        reasons.append("Repeated character runs appear in the handle.")
     lowered = username.lower()
     promo_hits = [term for term in ("deal", "giveaway", "official", "crypto", "follow", "prize", "promo", "shop") if term in lowered]
-    if promo_hits:
-        risk += min(24, 8 * len(promo_hits))
-        reasons.append(f"Handle contains promotional tokens ({', '.join(promo_hits[:3])}).")
+    if promo_hits or float(structure["suspicious_token_count"]) >= 1 or (extra and extra.suspicious_keywords):
+        risk += min(24, 8 * max(len(promo_hits), 1))
+        reasons.append(f"Handle contains promotional tokens ({', '.join(promo_hits[:3]) or structure['suspicious_tokens']}).")
     if display_sim < 0.35 and profile.display_name:
         risk += 8
         reasons.append("Display name diverges sharply from the handle.")
@@ -127,6 +134,11 @@ def score_identity(profile: ProfileInput) -> DomainScore:
     if ent < 0.35 and len(username) >= 8:
         risk += 7
         reasons.append("Templated low-entropy username structure.")
+    if structure["looks_templated"]:
+        risk += 10
+        reasons.append("Handle matches a common auto-generated template (user+digits).")
+    if extra and extra.excessive_numbers:
+        risk += 6
     if not reasons:
         reasons.append("Handle structure is within ordinary personal/business patterns.")
         signals.append(Signal("ordinary_handle", "positive", 0.4, "identity", f"entropy {ent:.2f}", reasons[-1], f"{ent:.2f}", "0.45–0.88"))
@@ -139,50 +151,69 @@ def score_profile(profile: ProfileInput) -> DomainScore:
     if not groups["profile"] and not groups["graph"]:
         return DomainScore("profile", 50, 50, 0.15, 0, 1.0, ["Profile metadata not supplied."])
     age = profile.account_age_days
-    completeness = profile.profile_fields_completed / max(profile.total_profile_fields, 1)
-    posts_per_day = profile.posts / max(age, 1)
-    followers_per_day = profile.followers / max(age, 1)
+    completed = profile.profile_fields_completed
+    completeness = (completed / max(profile.total_profile_fields, 1)) if completed is not None else None
+    followers = profile.followers
+    following = profile.following
+    posts = profile.posts
     risk = 10.0
     reasons: list[str] = []
     signals: list[Signal] = []
-    if age and age < 21 and profile.followers >= 8000:
+    if age is not None and followers is not None and age < 21 and followers >= 8000:
         risk += 18
         reasons.append("Large audience assembled on a very new account.")
-        signals.append(Signal("growth_vs_age", "risk", 0.65, "profile", f"{followers_per_day:.1f} followers/day", reasons[-1], f"{profile.followers} in {age}d", "organic nano/micro growth"))
-    if completeness < 0.35:
+        signals.append(
+            Signal(
+                "growth_vs_age",
+                "risk",
+                0.65,
+                "profile",
+                f"{followers / max(age, 1):.1f} followers/day",
+                reasons[-1],
+                f"{followers} in {age}d",
+                "organic nano/micro growth",
+            )
+        )
+    if completeness is not None and completeness < 0.35:
         risk += 10
         reasons.append("Sparse profile fields. Incomplete profiles are also common for real people.")
-    ratio = profile.following / max(profile.followers, 1)
-    if ratio >= 2.2 and profile.following >= 300:
-        extra = 18 + (10 if ratio >= 8 else 0)
-        risk += extra
-        reasons.append("Following/follower relationship is extreme for a public growth pattern.")
-        signals.append(Signal("follow_ratio", "risk", 0.55, "profile", f"ratio={ratio:.2f}", reasons[-1], f"{ratio:.2f}", "typically <1.5 for grown audiences"))
-    if posts_per_day >= 12:
+    if following is not None and followers is not None:
+        ratio = following / max(followers, 1)
+        if ratio >= 2.2 and following >= 300:
+            extra = 18 + (10 if ratio >= 8 else 0)
+            risk += extra
+            reasons.append("Following/follower relationship is extreme for a public growth pattern.")
+            signals.append(Signal("follow_ratio", "risk", 0.55, "profile", f"ratio={ratio:.2f}", reasons[-1], f"{ratio:.2f}", "typically <1.5 for grown audiences"))
+    if age is not None and posts is not None and posts / max(age, 1) >= 12:
         risk += 10
         reasons.append("Posting volume is extreme relative to account age.")
     if profile.verified:
         reasons.append("Claimed verification is recorded as unverifiable user-supplied input.")
         signals.append(Signal("unverified_badge_claim", "risk", 0.15, "profile", "user-supplied flag", reasons[-1], "claimed verified", "independently checked badge"))
-    if age >= 400 and completeness >= 0.6:
+    if age is not None and age >= 400 and (completeness is None or completeness >= 0.6):
         risk = max(4, risk - 14)
         reasons.append("Long observable history with a reasonably complete profile.")
         signals.append(Signal("long_history", "positive", 0.55, "profile", f"{age} days", reasons[-1], str(age), ">=180 days"))
+    if age is None:
+        reasons.append("Account age was not supplied. Age-based growth checks were skipped.")
     risk = _clip(risk)
-    confidence = 0.55 + 0.35 * float(groups["profile"])
-    return DomainScore("profile", _clip(100 - risk), risk, confidence, 3, 0.0 if groups["profile"] else 0.6, reasons, signals)
+    missing = 0.0 if groups["profile"] else 0.6
+    if age is None:
+        missing = max(missing, 0.35)
+    confidence = 0.55 + 0.35 * float(groups["profile"]) - (0.15 if age is None else 0)
+    return DomainScore("profile", _clip(100 - risk), risk, max(0.15, confidence), 3, missing, reasons, signals)
 
 
 def score_engagement(profile: ProfileInput) -> DomainScore:
     groups = evidence_groups(profile)
-    if not groups["engagement"] and profile.followers == 0:
+    if not groups["engagement"] and profile.followers is None:
         return DomainScore("engagement", 50, 50, 0.1, 0, 1.0, ["Engagement fields not supplied; domain weight dropped."])
-    likes = profile.average_likes
-    comments = profile.average_comments
-    shares = profile.average_shares
-    followers = max(profile.followers, 1)
+    likes = profile.measure("average_likes")
+    comments = profile.measure("average_comments")
+    shares = profile.measure("average_shares")
+    followers = max(profile.count("followers"), 1)
     er = (likes + comments + shares) / followers
-    expected, std = expected_engagement(profile.followers)
+    expected, std = expected_engagement(profile.count("followers"))
     deviation = (er - expected) / max(std, 1e-6)
     series = [point.likes for point in profile.engagement_history]
     cv = stats.coefficient_of_variation(series) if len(series) >= 3 else None
@@ -191,7 +222,7 @@ def score_engagement(profile: ProfileInput) -> DomainScore:
     reasons: list[str] = []
     signals: list[Signal] = []
     # Flag both abnormally low (ghost/bought followers) and high-uniform (pods).
-    if deviation <= -1.8 and profile.followers >= 400:
+    if deviation <= -1.8 and profile.count("followers") >= 400:
         risk += min(28, 10 + abs(deviation) * 4)
         reasons.append("Engagement is well below the expected band for this follower cohort.")
         signals.append(Signal("low_engagement", "risk", 0.7, "engagement", f"z={deviation:.2f} vs cohort mean {expected:.3f}", reasons[-1], f"{er:.4f}", f"{expected:.3f}±{std:.3f}"))
@@ -249,9 +280,16 @@ def score_temporal(profile: ProfileInput) -> DomainScore:
         reasons.append("Posting times cluster in a narrow window (low temporal entropy).")
         signals.append(Signal("low_temporal_entropy", "risk", 0.55, "temporal", f"H={ent:.2f} bits", reasons[-1], f"{ent:.2f}", "human-like ~2.5–4.2 bits over 24h"))
     if interval["cv"] < 0.12 and interval["n"] >= 4:
-        risk += 20
-        reasons.append("Inter-post intervals are mechanically regular.")
-        signals.append(Signal("mechanical_periodicity", "risk", 0.7, "temporal", f"interval CV={interval['cv']:.3f}, autocorr={interval['autocorr']:.2f}", reasons[-1], f"CV={interval['cv']:.3f}", "organic CV typically >0.35"))
+        long_verified = bool(profile.verified and profile.account_age_days is not None and profile.account_age_days >= 400)
+        if long_verified:
+            risk += 6
+            reasons.append(
+                "Posting is regular. On a long-lived verified account this is consistent with a scheduler or news desk, not proof of inauthenticity."
+            )
+        else:
+            risk += 20
+            reasons.append("Inter-post intervals are mechanically regular.")
+        signals.append(Signal("mechanical_periodicity", "risk" if not long_verified else "positive", 0.7 if not long_verified else 0.25, "temporal", f"interval CV={interval['cv']:.3f}, autocorr={interval['autocorr']:.2f}", reasons[-1], f"CV={interval['cv']:.3f}", "organic CV typically >0.35; schedulers overlap"))
     if interval["burstiness"] >= 0.55:
         risk += 8
         reasons.append("Burstiness is high; could be a campaign or a human binge. Not labelled malicious by itself.")
@@ -279,9 +317,23 @@ def score_content(profile: ProfileInput) -> DomainScore:
         reasons.append("Captions contain a high near-duplicate rate.")
         signals.append(Signal("duplicate_content", "risk", 0.7, "content", f"duplicate rate {dup:.2f}", reasons[-1], f"{dup:.0%}", "<30%"))
     if hits:
-        risk += min(34, 10 * len(hits))
+        # Lexical solicitation is not the same as an LLM-written human bio.
+        # It is still contextual, but it must be allowed to move the posterior.
+        risk += min(58, 12 * len(hits))
         reasons.append(f"Promotional/solicitation phrasing: {', '.join(hits[:4])}. Contextual, not automatic proof.")
-    confidence = 0.72 if hits or dup >= 0.4 else 0.45
+        signals.append(
+            Signal(
+                "solicitation_lexicon",
+                "risk",
+                min(1.0, 0.25 * len(hits)),
+                "content",
+                f"{len(hits)} lexicon hits",
+                reasons[-1],
+                str(len(hits)),
+                "0–1 ordinary bios",
+            )
+        )
+    confidence = 0.86 if hits else (0.72 if dup >= 0.4 else 0.45)
     if hashtag_density >= 0.45:
         risk += 8
         reasons.append("Hashtag stuffing relative to caption length.")
@@ -294,21 +346,138 @@ def score_content(profile: ProfileInput) -> DomainScore:
 
 
 def score_network(profile: ProfileInput, cluster_risk: float, cluster_size: int) -> DomainScore:
-    names = list(getattr(profile, "follower_usernames", []) or [])
-    missing = 1.0 if not names and cluster_size <= 1 else 0.35 if not names else 0.0
-    if missing >= 1.0:
-        return DomainScore("network", 50, 50, 0.08, 0, 1.0, ["No follower sample or cluster overlap. Network is a partial estimate, not a live graph."])
-    sample_ent = stats.mean([stats.normalized_entropy(n) for n in names]) if names else 0.0
-    risk = 10 + cluster_risk * 0.35
-    reasons = ["Network signal is partial/estimated — no login graph."]
+    features = network_features(profile, cluster_size, cluster_risk)
+    if not features["available"]:
+        return DomainScore("network", 50, 50, 0.08, 0, 1.0, features["explanations"])
+    risk = 8 + features["network_anomaly"] * 70
     signals: list[Signal] = []
-    if sample_ent >= 0.9 and len(names) >= 5:
-        risk += 16
-        reasons.append("Follower-sample handles look disproportionately random (purchased-follower proxy).")
-        signals.append(Signal("follower_sample_entropy", "risk", 0.5, "network", f"mean entropy {sample_ent:.2f}", reasons[-1], f"{sample_ent:.2f}", "<0.85"))
-    if cluster_size >= 3:
-        reasons.append(f"Local sample neighborhood size {cluster_size}; treated as exposure, not guilt-by-association.")
-    return DomainScore("network", _clip(100 - risk), _clip(risk), 0.45 if names else 0.25, len(names) + cluster_size, missing, reasons, signals)
+    reasons = list(features["explanations"])
+    if features["sample_entropy"] >= 0.9 and features["degree"] >= 5:
+        signals.append(
+            Signal(
+                "follower_sample_entropy",
+                "risk",
+                0.5,
+                "network",
+                f"mean entropy {features['sample_entropy']:.2f}",
+                "Neighbor handles look disproportionately random (purchased-follower proxy).",
+                f"{features['sample_entropy']:.2f}",
+                "<0.85",
+            )
+        )
+    if (features["suspicious_cluster_exposure"] or 0) >= 0.35:
+        signals.append(
+            Signal(
+                "cluster_exposure",
+                "risk",
+                0.45,
+                "network",
+                f"exposure={features['suspicious_cluster_exposure']:.2f}",
+                "Share of the observed neighborhood that overlaps a dense sample cluster.",
+                f"{features['suspicious_cluster_exposure']:.2f}",
+                "<0.20",
+            )
+        )
+    return DomainScore(
+        "network",
+        _clip(100 - risk),
+        _clip(risk),
+        0.45 if features["degree"] else 0.25,
+        int(features["degree"]) + cluster_size,
+        0.0 if features["degree"] else 0.35,
+        reasons,
+        signals,
+    )
+
+
+def score_language(profile: ProfileInput) -> DomainScore:
+    if not profile.bio and not profile.captions:
+        return DomainScore("language", 50, 50, 0.05, 0, 1.0, ["No text supplied. Language weight dropped."])
+    result = language_consistency(profile)
+    risk = 20.0
+    signals: list[Signal] = []
+    confidence = 0.22
+    if result["abrupt_switch"]:
+        risk = 56
+        confidence = 0.72
+        signals.append(
+            Signal(
+                "abrupt_language_switch",
+                "risk",
+                0.7,
+                "language",
+                f"consistency={result['consistency']:.2f}",
+                result["explanations"][0],
+                f"{result['consistency']:.2f}",
+                ">0.70 without a spam-language burst",
+            )
+        )
+    elif result["multilingual"]:
+        risk = 14
+        confidence = 0.35
+        signals.append(
+            Signal(
+                "multilingual_ordinary",
+                "positive",
+                0.4,
+                "language",
+                f"langs={result['bio_language']}+captions",
+                "Multilingual use is ordinary and is not treated as inauthenticity.",
+                "mixed",
+                "stable multilingual or monolingual",
+            )
+        )
+    return DomainScore(
+        "language",
+        _clip(100 - risk),
+        _clip(risk),
+        confidence,
+        1 + len(profile.captions),
+        0.0,
+        result["explanations"],
+        signals,
+    )
+
+
+def score_coordination_domain(coordination: dict | None) -> DomainScore:
+    if not coordination or coordination.get("coordination_score", 0) <= 0:
+        return DomainScore(
+            "coordination",
+            50,
+            50,
+            0.0,
+            0,
+            1.0,
+            ["No multi-account comparison was available. Coordination weight is dropped."],
+            [],
+        )
+    score = float(coordination["coordination_score"])
+    category = coordination.get("category", "LOW_COORDINATION")
+    risk = 12 + score * 55
+    if category == "HIGH_COORDINATION":
+        risk = max(risk, 58)
+    signals = [
+        Signal(
+            "group_coordination",
+            "risk" if score >= 0.34 else "positive",
+            min(1.0, score),
+            "coordination",
+            f"{category} ({score:.2f})",
+            coordination.get("explanation", "Pairwise coordination across supplied accounts."),
+            f"{score:.2f}",
+            "<0.34 isolated / organic overlap",
+        )
+    ]
+    return DomainScore(
+        "coordination",
+        _clip(100 - risk),
+        _clip(risk),
+        0.55 if score >= 0.2 else 0.25,
+        1,
+        0.0,
+        [coordination.get("explanation", "Coordination estimated from pairwise similarity.")],
+        signals,
+    )
 
 
 def score_impersonation(profile: ProfileInput, detected: bool, similarity: float, matched: str | None) -> DomainScore:
@@ -339,6 +508,17 @@ def score_impersonation(profile: ProfileInput, detected: bool, similarity: float
 
 def score_media(profile: ProfileInput, image_risk: float, present: bool) -> DomainScore:
     if not present and not profile.image_base64:
+        if profile.has_profile_picture is None:
+            return DomainScore(
+                "media",
+                50,
+                50,
+                0.0,
+                0,
+                1.0,
+                ["No image signal supplied. Media weight dropped."],
+                [],
+            )
         missing = 0.0 if profile.has_profile_picture else 0.4
         risk = 8.0 if profile.has_profile_picture else 16.0
         return DomainScore(

@@ -59,7 +59,7 @@ export function Sidebar() {
         ))}
       </nav>
       <p className="mt-auto text-[11px] leading-5 text-slate-500">
-        Hybrid ensemble v2. No social-media logins. No scraping. Missing fields lower confidence, not risk.
+        Hybrid ensemble v2.1. No social-media logins. No scraping. Missing fields lower confidence, not risk.
       </p>
     </aside>
   );

@@ -24,8 +24,9 @@ export function About() {
           <li>Frontend: React, Vite, TypeScript, Tailwind CSS, Recharts, Lucide</li>
           <li>Backend: FastAPI, Pydantic, SQLAlchemy / SQLite, Pillow, ReportLab</li>
           <li>Ensemble: calibrated Random Forest + histogram gradient boosting + logistic + isolation forest</li>
-          <li>Fusion: evidence-weighted log-odds with Botometer-style domain families</li>
-          <li>Calibration: isotonic (Platt fallback), ECE and Brier reported in Model Lab</li>
+          <li>Fusion: evidence-weighted log-odds with identity, profile, engagement, temporal, content, network, language, and coordination domains</li>
+          <li>Calibration: Platt stacking (isotonic fallback), ECE and Brier reported in Model Lab</li>
+          <li>OOD: isolation forest + centroid distance + missing-feature pattern</li>
         </ul>
       </GlassCard>
       <GlassCard title="Limitations">

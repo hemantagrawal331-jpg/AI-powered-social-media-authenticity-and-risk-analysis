@@ -38,9 +38,11 @@ def classify_purpose(
     scores: dict[str, float] = {label: 8.0 for label in PURPOSE_LABELS}
 
     personal = 40.0
-    if 50 <= profile.followers <= 4000 and 0.8 <= _er(profile) <= 12:
+    followers = profile.count("followers")
+    posts = profile.count("posts")
+    if 50 <= followers <= 4000 and 0.8 <= _er(profile) <= 12:
         personal += 25
-    if profile.account_age_days > 365 and profile.posts >= 20:
+    if profile.account_age_days is not None and profile.account_age_days > 365 and posts >= 20:
         personal += 15
     if bio_score < 30 and username_score < 35:
         personal += 12
@@ -51,21 +53,23 @@ def classify_purpose(
     if any(word in bio for word in ("shop", "order", "store", "cafe", "studio", "hours")):
         scores["Business/Brand"] += 55
         personal -= 30
-    if 1000 <= profile.followers <= 80000 and profile.following < 2000 and scores["Business/Brand"] >= 40:
+    following = profile.count("following")
+    if 1000 <= followers <= 80000 and following < 2000 and scores["Business/Brand"] >= 40:
         scores["Business/Brand"] += 12
 
-    if profile.followers >= 20000 and _er(profile) >= 1.2:
+    if followers >= 20000 and _er(profile) >= 1.2:
         scores["Influencer/Creator"] += 40
-    if profile.verified and profile.followers >= 8000:
+    if profile.verified and followers >= 8000:
         scores["Influencer/Creator"] += 20
     if "collab" in bio or "traveller" in bio or "photographer" in bio:
         scores["Influencer/Creator"] += 15
 
     if behavior_score >= 60 or username_score >= 70:
         scores["Bot/Automation"] += 35
-    if profile.posting_frequency_per_week >= 25:
+    freq = profile.posting_frequency_per_week
+    if freq is not None and freq >= 25:
         scores["Bot/Automation"] += 25
-    if profile.average_likes < 5 and profile.followers >= 2000:
+    if profile.measure("average_likes") < 5 and followers >= 2000 and profile.average_likes is not None:
         scores["Bot/Automation"] += 15
 
     if bio_score >= 55 and any(word in bio for word in ("follow", "link in bio", "dm", "promo")):
@@ -93,7 +97,7 @@ def classify_purpose(
 
     if any(word in bio for word in ("brand", "marketing", "agency", "growth")):
         scores["Marketing Account"] += 35
-    if profile.external_links >= 1 and profile.followers >= 2000:
+    if profile.count("external_links") >= 1 and followers >= 2000:
         scores["Marketing Account"] += 10
 
     if max(scores.values()) < 28:
@@ -115,6 +119,7 @@ def classify_purpose(
     
 
 def _er(profile: ProfileInput) -> float:
-    if profile.followers <= 0:
+    followers = profile.count("followers")
+    if followers <= 0:
         return 0.0
-    return (profile.average_likes + profile.average_comments) / profile.followers * 100
+    return (profile.measure("average_likes") + profile.measure("average_comments")) / followers * 100

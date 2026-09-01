@@ -2,7 +2,10 @@
 
 AI-powered social media authenticity and risk analysis.
 
-This is a **working local prototype** for a college project / hackathon. It estimates whether a social media account looks **genuine, suspicious, or fake** using heuristic feature scoring. It does **not** call Instagram, X, Facebook, TikTok, or LinkedIn APIs, and it never asks for login credentials.
+This is a **multimodal authenticity intelligence system**. It estimates authenticity
+probability, inauthenticity risk, model confidence, evidence sufficiency, and uncertainty
+from voluntarily supplied, publicly observable fields. It does **not** call Instagram, X,
+Facebook, TikTok, or LinkedIn APIs, and it never asks for login credentials.
 
 ---
 
@@ -26,19 +29,11 @@ Users usually see a username, a photo, a bio, and a follower count. That is not 
 
 FakeGuard AI analyzes **many signals together** instead of relying on a single feature:
 
-| Signal | Weight |
-| --- | --- |
-| Profile completeness | 10% |
-| Username risk | 10% |
-| Engagement anomaly | 20% |
-| Follower / following ratio | 10% |
-| Account age | 10% |
-| Behavior patterns | 15% |
-| Bio risk | 10% |
-| Content patterns | 10% |
-| Profile image signal | 5% |
-
-Each feature is normalized to 0–100. The weighted sum is the **fake-account probability**. Changing the input data changes the score, charts, reasons, and purpose classification.
+Domains (identity, profile, engagement, temporal, content, network, language,
+coordination, impersonation, media, anomaly) are fused with **dynamic evidence
+weights**. Missing domains drop to weight 0. A calibrated Random Forest +
+histogram gradient boosting + logistic baseline + isolation-forest anomaly score
+is mixed with the rule engine. See `STATISTICAL_METHODOLOGY.md` and `MODEL_CARD.md`.
 
 ---
 
@@ -210,7 +205,8 @@ Exact numbers depend on the full feature set supplied with the request.
 5. **Purpose classification** — a second heuristic ranks personal, business, influencer, bot, spam, scam, giveaway, impersonation, political, marketing, or unknown. Top-3 scores are shown as relative estimates.
 6. **Explainability** — each reason includes severity, weighted contribution, and a plain-language explanation.
 
-The engine lives in `backend/app/analysis/` so a trained model (Random Forest, XGBoost, etc.) can later replace `scoring.py` without rewriting the API.
+Live scoring lives in `backend/app/intelligence/` (fusion, calibration, uncertainty, OOD).
+Heuristic analyzers in `backend/app/analysis/` remain as explainable side channels.
 
 ---
 

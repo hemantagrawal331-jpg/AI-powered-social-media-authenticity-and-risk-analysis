@@ -1,11 +1,11 @@
-# Model card — FakeGuard AI v2.0.0
+# Model card — FakeGuard AI v2.1.0
 
 ## Model
 
 Hybrid ensemble:
 
-- Calibrated Random Forest (isotonic on a validation split)
-- Histogram Gradient Boosting (isotonic if supported, otherwise raw)
+- Calibrated Random Forest + histogram gradient boosting with Platt stacking
+- Histogram Gradient Boosting (raw member of the stack)
 - Logistic regression on standardized features (interpretable baseline / portable JSON)
 - Isolation Forest trained on genuine-like rows only (anomaly / OOD — **not** P(fake))
 - Evidence-weighted rule fusion with log-odds updates (not fully Bayesian independence)
@@ -31,21 +31,29 @@ Outputs that are intentionally distinct:
 
 Synthetic overlapping archetypes, n=20,000 generator default. See `DATASET_METHODOLOGY.md`.
 
-## Measured synthetic holdout (v2.0.0, 20k generator, sophisticated bots held out)
+## Measured synthetic holdout (v2.1.0, 20k generator, sophisticated bots held out)
 
-In-distribution test (n=2760):
+In-distribution test (n=2770):
 
-- Accuracy 0.957 · Precision 0.949 · Recall 0.947 · F1 0.948
-- ROC-AUC 0.967 · PR-AUC 0.946 · MCC 0.911 · Balanced accuracy 0.955
-- Brier 0.037 · ECE 0.014
+- Accuracy 0.918 · Precision 0.899 · Recall 0.898 · F1 0.899
+- ROC-AUC 0.951 · PR-AUC 0.923 · MCC 0.830 · Balanced accuracy 0.915
+- Brier 0.065 · ECE 0.019
 - Decision threshold 0.38 (not 0.5)
+
+Accuracy dropped versus v2.0 because v2.1 injects missing fields, a news/aggregator
+class, and more overlap. That is intended. PR-AUC and MCC are the numbers to read.
 
 Held-out sophisticated bots (LLM-like bios, bot-like graph/cadence):
 
-- Content-only AUC 0.47 · metadata/behavior AUC 0.46
+- Content-only AUC 0.47 · metadata/behavior AUC 0.51 · recall 0.12
 - This is a **failure mode we report on purpose**: novel bots that look human in text are not solved.
 
-Fairness slices (test set positive rate): new accounts 0.99, numeric usernames 0.91, high-frequency posters 0.74. The system over-flags new accounts; that is documented, not hidden.
+Temporal split (train older, test newer): ROC-AUC 0.68 · balanced accuracy 0.60.
+A random split overstates generalization to newer accounts.
+
+Fairness slices (test set positive rate): new accounts 0.98, numeric usernames 0.83,
+high-frequency posters 0.67, low-follower accounts 0.32. The system over-flags new
+accounts; that is documented, not hidden.
 
 ## Ethical limits
 

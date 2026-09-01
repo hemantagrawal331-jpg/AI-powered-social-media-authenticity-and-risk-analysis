@@ -10,15 +10,17 @@ from app.schemas.profile import ProfileInput
 
 def build_timeline(profile: ProfileInput, signals: dict) -> list[TimelineEvent]:
     events: list[TimelineEvent] = []
-    created = date.today() - timedelta(days=max(profile.account_age_days, 0))
-    events.append(
-        TimelineEvent(
-            date=created.isoformat(),
-            title="Account created",
-            detail=f"Reported age is {profile.account_age_days} days.",
-            severity="info" if profile.account_age_days > 90 else "medium",
+    age = profile.account_age_days
+    created = date.today() - timedelta(days=max(age or 0, 0))
+    if age is not None:
+        events.append(
+            TimelineEvent(
+                date=created.isoformat(),
+                title="Account created",
+                detail=f"Reported age is {age} days.",
+                severity="info" if age > 90 else "medium",
+            )
         )
-    )
 
     for growth in profile.follower_growth_events:
         severity = "high" if abs(growth.delta) >= 800 else "medium"
@@ -52,7 +54,7 @@ def build_timeline(profile: ProfileInput, signals: dict) -> list[TimelineEvent]:
     if signals.get("repetitive_content"):
         events.append(
             TimelineEvent(
-                date=(created + timedelta(days=min(6, profile.account_age_days))).isoformat(),
+                date=(created + timedelta(days=min(6, age or 0))).isoformat(),
                 title="Repeated promotional posts detected",
                 detail="Captions or hashtags show strong repetition.",
                 severity="high",
@@ -61,7 +63,7 @@ def build_timeline(profile: ProfileInput, signals: dict) -> list[TimelineEvent]:
     if signals.get("engagement_anomaly"):
         events.append(
             TimelineEvent(
-                date=(created + timedelta(days=min(8, profile.account_age_days))).isoformat(),
+                date=(created + timedelta(days=min(8, age or 0))).isoformat(),
                 title="Engagement anomaly detected",
                 detail="Audience size and interaction volume are mismatched.",
                 severity="high",

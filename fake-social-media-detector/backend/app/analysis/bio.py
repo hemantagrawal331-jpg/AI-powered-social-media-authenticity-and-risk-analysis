@@ -27,8 +27,14 @@ def analyze_bio(bio: str, *, verified: bool, external_links: int) -> dict:
     score = 6.0
 
     if not text.strip():
-        score += 18
-        reasons.append("Empty bio reduces profile completeness and trust signals")
+        return {
+            "score": 0.0,
+            "risk_level": "Minimal",
+            "length": 0,
+            "keyword_hits": {},
+            "reasons": ["Bio was not supplied. Missing text is not treated as promotional risk."],
+            "explanation": "No bio provided. Content weight should drop rather than add fraud evidence.",
+        }
 
     for group, words in KEYWORD_GROUPS.items():
         found = [word for word in words if word in lowered]

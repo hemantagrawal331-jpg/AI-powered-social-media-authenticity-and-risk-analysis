@@ -10,6 +10,7 @@ export function History() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const refresh = () => {
     api
@@ -41,6 +42,25 @@ export function History() {
     }
   };
 
+  const toggle = (id: number) => {
+    setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-2)));
+  };
+
+  const compareSelected = async () => {
+    if (selected.length !== 2) {
+      setError("Select exactly two analyses to compare.");
+      return;
+    }
+    try {
+      const [a, b] = await Promise.all(selected.map((id) => api.historyItem(id)));
+      persistResult(a);
+      sessionStorage.setItem("fakeguard:compare-b", JSON.stringify(b));
+      navigate("/compare");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Compare failed");
+    }
+  };
+
   const report = async (id: number) => {
     try {
       const created = await api.createReport(id, "pdf");
@@ -52,14 +72,27 @@ export function History() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl">Analysis history</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Analysis history</h1>
+          <p className="mt-1 text-sm text-slate-400">Optional local store. Select two rows to inspect change between analyses.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void compareSelected()}
+          className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+        >
+          Compare selected
+        </button>
+      </div>
       <ErrorBanner message={error} />
       <GlassCard>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-slate-400">
               <tr>
-                <th className="pb-3">Username</th>
+                <th className="pb-3" />
+                <th>Username</th>
                 <th>Platform</th>
                 <th>Risk</th>
                 <th>Purpose</th>
@@ -70,7 +103,10 @@ export function History() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-t border-white/5">
-                  <td className="py-3">@{row.username}</td>
+                  <td className="py-3">
+                    <input type="checkbox" checked={selected.includes(row.id)} onChange={() => toggle(row.id)} />
+                  </td>
+                  <td>@{row.username}</td>
                   <td>{row.platform}</td>
                   <td>
                     <RiskBadge level={`${row.risk_level} (${Math.round(row.fake_probability)}%)`} />
@@ -93,7 +129,7 @@ export function History() {
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-6 text-slate-500">
-                    No analyses stored yet.
+                    No analyses stored yet. History is optional and local.
                   </td>
                 </tr>
               )}

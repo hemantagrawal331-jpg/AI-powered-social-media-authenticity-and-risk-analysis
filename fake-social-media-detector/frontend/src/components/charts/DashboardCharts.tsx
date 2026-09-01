@@ -27,9 +27,13 @@ const tooltipStyle = {
 };
 
 export function DashboardCharts({ result }: { result: AnalysisResult }) {
+  const domainRadar = Object.entries(result.domain_scores || {}).map(([name, card]) => ({
+    label: name.replaceAll("_", " "),
+    value: card.score,
+  }));
   const donut = [
-    { name: "Fake risk", value: result.fake_probability },
-    { name: "Residual genuine", value: Math.max(0, 100 - result.fake_probability) },
+    { name: "Inauthenticity risk", value: result.fake_probability },
+    { name: "Authenticity residual", value: Math.max(0, 100 - result.fake_probability) },
   ];
   const bars = result.score_contributions.map((item) => ({
     name: item.feature.replace(" Risk", "").replace(" Anomaly", "").replace(" Patterns", "").replace(" Signal", ""),
@@ -38,9 +42,9 @@ export function DashboardCharts({ result }: { result: AnalysisResult }) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <ChartCard title="Risk radar">
+      <ChartCard title="Domain authenticity radar">
         <ResponsiveContainer width="100%" height={280}>
-          <RadarChart data={result.radar}>
+          <RadarChart data={domainRadar.length ? domainRadar : result.radar}>
             <PolarGrid stroke="rgba(255,255,255,0.08)" />
             <PolarAngleAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 11 }} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />

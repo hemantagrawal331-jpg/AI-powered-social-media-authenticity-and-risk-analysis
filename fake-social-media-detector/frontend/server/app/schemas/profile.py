@@ -1,4 +1,7 @@
-"""Pydantic schemas for user-supplied social profile data."""
+"""Pydantic schemas for user-supplied social profile data.
+
+All optional fields support missing values. Missing is not treated as fraud.
+"""
 
 from typing import Literal
 
@@ -25,25 +28,64 @@ class EngagementPoint(BaseModel):
     followers: float = 0
 
 
+class UsernameHistorySignals(BaseModel):
+    excessive_numbers: bool | None = None
+    suspicious_keywords: bool | None = None
+    repeated_characters: bool | None = None
+
+
+class ContentSignals(BaseModel):
+    duplicate_content_rate: float | None = Field(None, ge=0, le=1)
+    repost_rate: float | None = Field(None, ge=0, le=1)
+    promotional_rate: float | None = Field(None, ge=0, le=1)
+    url_rate: float | None = Field(None, ge=0, le=1)
+    hashtag_density: float | None = Field(None, ge=0)
+    average_caption_length: float | None = Field(None, ge=0)
+    language_consistency: float | None = Field(None, ge=0, le=1)
+
+
+class TemporalSignals(BaseModel):
+    activity_entropy: float | None = Field(None, ge=0)
+    night_activity_ratio: float | None = Field(None, ge=0, le=1)
+    posting_burstiness: float | None = Field(None, ge=-1, le=1)
+    periodicity_score: float | None = Field(None, ge=0, le=1)
+    timezone_consistency: float | None = Field(None, ge=0, le=1)
+
+
+class EngagementSignals(BaseModel):
+    engagement_rate: float | None = Field(None, ge=0)
+    engagement_volatility: float | None = Field(None, ge=0)
+    likes_comments_consistency: float | None = Field(None, ge=0, le=1)
+    suspected_engagement_pods: float | None = Field(None, ge=0, le=1)
+    suspicious_follower_growth_rate: float | None = Field(None, ge=0)
+
+
+class NetworkSignals(BaseModel):
+    mutual_connection_ratio: float | None = Field(None, ge=0, le=1)
+    follower_overlap: float | None = Field(None, ge=0, le=1)
+    clustering_coefficient: float | None = Field(None, ge=0, le=1)
+    suspicious_cluster_exposure: float | None = Field(None, ge=0, le=1)
+
+
 class ProfileInput(BaseModel):
     username: str = Field(..., min_length=1, max_length=80)
     platform: Platform = "instagram"
     display_name: str = ""
     profile_url: str = ""
-    followers: int = Field(0, ge=0, le=2_000_000_000)
-    following: int = Field(0, ge=0, le=2_000_000_000)
-    posts: int = Field(0, ge=0, le=10_000_000)
-    account_age_days: int = Field(180, ge=0, le=20_000)
+    followers: int | None = Field(None, ge=0, le=2_000_000_000)
+    following: int | None = Field(None, ge=0, le=2_000_000_000)
+    posts: int | None = Field(None, ge=0, le=10_000_000)
+    account_age_days: int | None = Field(None, ge=0, le=20_000)
     bio: str = Field("", max_length=2000)
     verified: bool = False
-    has_profile_picture: bool = True
-    external_links: int = Field(0, ge=0, le=50)
-    profile_fields_completed: int = Field(5, ge=0, le=20)
+    has_profile_picture: bool | None = None
+    external_links: int | None = Field(None, ge=0, le=50)
+    profile_fields_completed: int | None = Field(None, ge=0, le=20)
     total_profile_fields: int = Field(8, ge=1, le=20)
-    average_likes: float = Field(0, ge=0)
-    average_comments: float = Field(0, ge=0)
-    average_shares: float = Field(0, ge=0)
-    posting_frequency_per_week: float = Field(2.0, ge=0, le=500)
+    average_likes: float | None = Field(None, ge=0)
+    average_comments: float | None = Field(None, ge=0)
+    average_shares: float | None = Field(None, ge=0)
+    posting_frequency_per_week: float | None = Field(None, ge=0, le=500)
     has_external_link: bool = False
     captions: list[str] = Field(default_factory=list)
     hashtags: list[str] = Field(default_factory=list)
@@ -54,10 +96,15 @@ class ProfileInput(BaseModel):
     image_base64: str | None = None
     image_filename: str | None = None
     sample_id: str | None = None
-    private_account: bool = False
+    private_account: bool | None = None
     post_timestamps: list[str] = Field(default_factory=list)
     follower_usernames: list[str] = Field(default_factory=list)
     comment_samples: list[str] = Field(default_factory=list)
+    username_history_signals: UsernameHistorySignals | None = None
+    content_signals: ContentSignals | None = None
+    temporal_signals: TemporalSignals | None = None
+    engagement_signals: EngagementSignals | None = None
+    network_signals: NetworkSignals | None = None
 
     @field_validator("username")
     @classmethod
@@ -125,11 +172,24 @@ class ProfileInput(BaseModel):
 
     @model_validator(mode="after")
     def sync_link_flag(self) -> "ProfileInput":
-        if self.external_links > 0:
+        if (self.external_links or 0) > 0:
             self.has_external_link = True
-        if self.profile_fields_completed > self.total_profile_fields:
+        completed = self.profile_fields_completed
+        if completed is not None and completed > self.total_profile_fields:
             self.profile_fields_completed = self.total_profile_fields
         return self
+
+    def count(self, name: str) -> int:
+        """Safe integer accessor. Missing counts stay missing-as-zero for ratios only."""
+        value = getattr(self, name)
+        return 0 if value is None else int(value)
+
+    def measure(self, name: str) -> float:
+        value = getattr(self, name)
+        return 0.0 if value is None else float(value)
+
+    def observed(self, name: str) -> bool:
+        return getattr(self, name) is not None
 
 
 class CompareRequest(BaseModel):

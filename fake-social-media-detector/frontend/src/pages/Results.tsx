@@ -100,11 +100,15 @@ export function Results() {
           Likely purpose: <span className="text-accent">{result.purpose}</span> · {result.purpose_confidence}%
           estimated confidence
         </p>
+        <p className="mt-3 font-mono text-[11px] text-slate-500">
+          Model {result.model?.model_version || "v2.1.0"} · schema {result.model?.feature_schema || "v2.1"} ·{" "}
+          {result.model?.analysis_engine || "hybrid-ensemble"} · calibration {result.model?.calibration || "platt"}
+          {result.input_hash ? ` · input ${result.input_hash}` : ""}
+        </p>
         {result.model?.available && (
-          <p className="mt-2 text-xs text-slate-500">
-            {result.model.model_version || "v2"} · {result.model.analysis_engine || "hybrid ensemble"} · calibration{" "}
-            {result.model.calibration || "isotonic"} · RF {result.model.ml_probability ?? "—"}% · rules{" "}
-            {result.model.heuristic_probability ?? "—"}%
+          <p className="mt-1 text-xs text-slate-500">
+            Calibrated ML {result.model.ml_probability ?? "—"}% · rules {result.model.heuristic_probability ?? "—"}% ·
+            logistic {result.model.logistic_probability ?? "—"}% · anomaly {result.model.anomaly_probability ?? "—"}%
           </p>
         )}
         <div className="mt-6 flex justify-center gap-3">
@@ -169,6 +173,43 @@ export function Results() {
           </div>
         </GlassCard>
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <GlassCard title="Language consistency">
+          <p className="text-sm text-slate-300">
+            {String((result.language_analysis?.explanations as string[] | undefined)?.[0] || "No language text was supplied.")}
+          </p>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <Row label="Bio language" value={String(result.language_analysis?.bio_language ?? "—")} />
+            <Row label="Multilingual" value={result.language_analysis?.multilingual ? "yes" : "no"} />
+            <Row label="Abrupt switch" value={result.language_analysis?.abrupt_switch ? "yes" : "no"} />
+            <Row label="Consistency" value={`${Math.round(Number(result.language_analysis?.consistency ?? 0) * 100)}%`} />
+          </dl>
+        </GlassCard>
+        <GlassCard title="Coordination">
+          <p className="font-display text-lg">{(result.coordination?.category || "LOW_COORDINATION").replaceAll("_", " ")}</p>
+          <p className="mt-2 text-sm text-slate-300">{result.coordination?.explanation || "Single-account analysis only."}</p>
+          <p className="mt-3 font-mono text-xs text-slate-500">
+            score {Math.round((result.coordination?.coordination_score || 0) * 100)} / 100
+          </p>
+        </GlassCard>
+      </div>
+
+      {!!result.interval_stats && Number(result.interval_stats.n || 0) >= 2 && (
+        <GlassCard title="Inter-post interval statistics">
+          <dl className="grid gap-2 text-sm sm:grid-cols-3">
+            <Row label="Mean interval" value={num(result.interval_stats.mean)} />
+            <Row label="Median" value={num(result.interval_stats.median)} />
+            <Row label="Std. dev." value={num(result.interval_stats.std)} />
+            <Row label="CV" value={num(result.interval_stats.cv)} />
+            <Row label="Burstiness" value={num(result.interval_stats.burstiness)} />
+            <Row label="Autocorr" value={num(result.interval_stats.autocorr)} />
+          </dl>
+          <p className="mt-3 text-xs text-slate-500">
+            Burstiness B = (σ − μ) / (σ + μ). High periodicity is evidence of scheduling, not proof of inauthenticity.
+          </p>
+        </GlassCard>
+      )}
 
       {!!result.counterfactuals?.length && (
         <GlassCard title="What would reduce this risk?">
@@ -395,5 +436,10 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd>{value}</dd>
     </div>
   );
+}
+
+function num(value: unknown) {
+  if (typeof value !== "number") return "—";
+  return value.toFixed(2);
 }
 

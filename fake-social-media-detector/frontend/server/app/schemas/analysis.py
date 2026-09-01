@@ -216,6 +216,10 @@ class AnalysisResult(BaseModel):
     explanation: str = ""
     limitations: list[str] = Field(default_factory=list)
     signal_hardness: dict[str, float] = Field(default_factory=dict)
+    language_analysis: dict[str, Any] = Field(default_factory=dict)
+    coordination: dict[str, Any] = Field(default_factory=dict)
+    interval_stats: dict[str, Any] = Field(default_factory=dict)
+    input_hash: str = ""
     disclaimer: str
     created_at: datetime
 
@@ -226,10 +230,10 @@ class CompareAccountSummary(BaseModel):
     fake_probability: float
     risk_level: str
     purpose: str
-    account_age_days: int
-    followers: int
-    following: int
-    average_likes: float
+    account_age_days: int | None = None
+    followers: int | None = None
+    following: int | None = None
+    average_likes: float | None = None
     engagement_rate: float
     username_risk: float
     bio_risk: float

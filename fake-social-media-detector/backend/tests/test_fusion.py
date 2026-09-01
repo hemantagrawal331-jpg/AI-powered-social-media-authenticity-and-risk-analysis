@@ -44,9 +44,10 @@ def test_genuine_sample_has_low_risk():
 
 
 def test_spam_sample_not_genuine_band():
-    spam = next(p for p, y, a in generate_training_profiles(80, seed=9) if a == "spam")
+    spam = next(p for p, y, a in generate_training_profiles(80, seed=9) if a == "spam" and p.bio)
     fused = fuse_authenticity(spam, ml=None)
     assert fused["classification"] in {"SUSPICIOUS", "HIGH_RISK", "LIKELY_INAUTHENTIC"}
+    assert fused["inauthenticity_probability"] >= 38
 
 
 def test_empty_optional_fields_do_not_crash():

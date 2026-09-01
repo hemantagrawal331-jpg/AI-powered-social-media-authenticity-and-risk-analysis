@@ -1,12 +1,12 @@
 {
-  "trained_at": "2026-08-26T08:36:24.514018+00:00",
-  "model_version": "v2.0.0",
-  "feature_schema": "v2",
+  "trained_at": "2026-09-01T07:58:25.577765+00:00",
+  "model_version": "v2.1.0",
+  "feature_schema": "v2.1",
   "algorithm": "RF + HGB with Platt stacking, logistic baseline, isolation forest",
   "calibration": "platt-on-rf+hgb",
-  "training_rows": 12878,
-  "validation_rows": 2760,
-  "test_rows": 2760,
+  "training_rows": 12925,
+  "validation_rows": 2770,
+  "test_rows": 2770,
   "label_definition": "1 = inauthentic-like archetype (spam/bot/coordinated/impersonation/compromised); 0 = genuine-like",
   "decision_threshold": 0.38,
   "notes": [
@@ -15,123 +15,152 @@
     "Anomaly scores are not treated as P(fake).",
     "Content-only signals are expected to fail on LLM-written bios; metadata/behavior should still separate the adversarial slice."
   ],
-  "accuracy": 0.9569,
-  "precision": 0.9491,
-  "recall": 0.9466,
-  "f1": 0.9478,
-  "roc_auc": 0.9673,
-  "pr_auc": 0.9462,
-  "mcc": 0.9111,
-  "balanced_accuracy": 0.9554,
-  "brier": 0.0371,
-  "ece": 0.0138,
+  "accuracy": 0.9181,
+  "precision": 0.8989,
+  "recall": 0.8981,
+  "f1": 0.8985,
+  "roc_auc": 0.9511,
+  "pr_auc": 0.9227,
+  "mcc": 0.8298,
+  "balanced_accuracy": 0.9148,
+  "brier": 0.0646,
+  "ece": 0.019,
   "confusion_matrix": {
-    "tn": 1560,
-    "fp": 58,
-    "fn": 61,
-    "tp": 1081
+    "tn": 1538,
+    "fp": 113,
+    "fn": 114,
+    "tp": 1005
   },
   "adversarial_sophisticated_bot": {
-    "adv_accuracy": 0.3683,
-    "adv_precision": 0.9604,
-    "adv_recall": 0.3607,
-    "adv_f1": 0.5244,
-    "adv_roc_auc": 0.472,
-    "adv_pr_auc": 0.9622,
-    "adv_mcc": -0.0218,
-    "adv_balanced_accuracy": 0.4713,
-    "adv_brier": 0.4136,
-    "adv_ece": 0.6114,
+    "adv_accuracy": 0.1492,
+    "adv_precision": 0.9521,
+    "adv_recall": 0.1213,
+    "adv_f1": 0.2151,
+    "adv_roc_auc": 0.4777,
+    "adv_pr_auc": 0.958,
+    "adv_mcc": -0.0183,
+    "adv_balanced_accuracy": 0.4844,
+    "adv_brier": 0.522,
+    "adv_ece": 0.6856,
     "adv_confusion_matrix": {
-      "tn": 32,
-      "fp": 23,
-      "fn": 989,
-      "tp": 558
+      "tn": 50,
+      "fp": 9,
+      "fn": 1297,
+      "tp": 179
     }
   },
-  "adversarial_content_only_auc": 0.467,
-  "adversarial_metadata_auc": 0.4637,
+  "adversarial_content_only_auc": 0.4743,
+  "adversarial_metadata_auc": 0.5147,
   "feature_importances": [
     {
-      "feature": "caption_ttr",
-      "importance": 0.1527
-    },
-    {
       "feature": "account_age_days",
-      "importance": 0.1305
+      "importance": 0.192
     },
     {
-      "feature": "growth_spike",
-      "importance": 0.0878
-    },
-    {
-      "feature": "posting_frequency",
-      "importance": 0.0873
-    },
-    {
-      "feature": "hashtag_density",
-      "importance": 0.0764
-    },
-    {
-      "feature": "caption_duplicate_rate",
-      "importance": 0.0694
-    },
-    {
-      "feature": "username_suffix_len",
-      "importance": 0.0467
+      "feature": "caption_ttr",
+      "importance": 0.09
     },
     {
       "feature": "username_display_sim",
-      "importance": 0.0463
+      "importance": 0.0695
     },
     {
-      "feature": "posts_log",
-      "importance": 0.0416
+      "feature": "posting_frequency",
+      "importance": 0.0647
     },
     {
-      "feature": "bio_spam_hits",
-      "importance": 0.0273
+      "feature": "growth_spike",
+      "importance": 0.0637
     },
     {
-      "feature": "followers_per_day",
-      "importance": 0.0269
-    },
-    {
-      "feature": "following_to_followers",
-      "importance": 0.026
-    },
-    {
-      "feature": "bio_length",
-      "importance": 0.0247
-    },
-    {
-      "feature": "handle_brand_sim",
-      "importance": 0.0225
-    },
-    {
-      "feature": "username_special_ratio",
-      "importance": 0.0203
+      "feature": "hashtag_density",
+      "importance": 0.0625
     },
     {
       "feature": "username_digit_ratio",
-      "importance": 0.0193
+      "importance": 0.0404
+    },
+    {
+      "feature": "posts_log",
+      "importance": 0.0377
+    },
+    {
+      "feature": "completeness",
+      "importance": 0.0364
+    },
+    {
+      "feature": "caption_duplicate_rate",
+      "importance": 0.0356
+    },
+    {
+      "feature": "following_to_followers",
+      "importance": 0.035
+    },
+    {
+      "feature": "username_special_ratio",
+      "importance": 0.0283
+    },
+    {
+      "feature": "followers_per_day",
+      "importance": 0.0265
+    },
+    {
+      "feature": "bio_length",
+      "importance": 0.0263
+    },
+    {
+      "feature": "username_separator_ratio",
+      "importance": 0.0262
+    },
+    {
+      "feature": "username_suffix_len",
+      "importance": 0.0254
     }
   ],
   "fairness_slices": {
     "new_accounts": {
-      "n": 743,
-      "positive_rate": 0.9865,
-      "recall": 0.9986
+      "n": 673,
+      "positive_rate": 0.9807,
+      "recall": 0.9984
     },
     "numeric_usernames": {
-      "n": 726,
-      "positive_rate": 0.9091,
-      "recall": 0.9735
+      "n": 693,
+      "positive_rate": 0.8268,
+      "recall": 0.9251
     },
     "high_frequency_posters": {
-      "n": 1402,
-      "positive_rate": 0.7361,
-      "recall": 0.981
+      "n": 1431,
+      "positive_rate": 0.6674,
+      "recall": 0.9305
+    },
+    "low_follower_accounts": {
+      "n": 333,
+      "positive_rate": 0.3183,
+      "recall": 0.9
+    },
+    "private_accounts": {
+      "n": 101,
+      "positive_rate": 0.0,
+      "recall": 0.0
+    }
+  },
+  "temporal_split": {
+    "available": true,
+    "temporal_accuracy": 0.949,
+    "temporal_precision": 0.9514,
+    "temporal_recall": 0.9967,
+    "temporal_f1": 0.9735,
+    "temporal_roc_auc": 0.6822,
+    "temporal_pr_auc": 0.9618,
+    "temporal_mcc": 0.3922,
+    "temporal_balanced_accuracy": 0.602,
+    "temporal_brier": 0.0466,
+    "temporal_ece": 0.0361,
+    "temporal_confusion_matrix": {
+      "tn": 73,
+      "fp": 279,
+      "fn": 18,
+      "tp": 5459
     }
   }
 }

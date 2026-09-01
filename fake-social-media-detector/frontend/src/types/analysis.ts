@@ -5,20 +5,20 @@ export interface ProfileInput {
   platform: Platform;
   display_name: string;
   profile_url: string;
-  followers: number;
-  following: number;
-  posts: number;
-  account_age_days: number;
+  followers: number | null;
+  following: number | null;
+  posts: number | null;
+  account_age_days: number | null;
   bio: string;
   verified: boolean;
-  has_profile_picture: boolean;
-  external_links: number;
-  profile_fields_completed: number;
+  has_profile_picture: boolean | null;
+  external_links: number | null;
+  profile_fields_completed: number | null;
   total_profile_fields: number;
-  average_likes: number;
-  average_comments: number;
-  average_shares: number;
-  posting_frequency_per_week: number;
+  average_likes: number | null;
+  average_comments: number | null;
+  average_shares: number | null;
+  posting_frequency_per_week: number | null;
   has_external_link: boolean;
   captions: string[];
   hashtags: string[];
@@ -236,6 +236,15 @@ export interface AnalysisResult {
   explanation?: string;
   limitations?: string[];
   signal_hardness?: { hard_to_fake?: number; easy_to_fake_with_llm?: number };
+  language_analysis?: Record<string, unknown>;
+  coordination?: {
+    coordination_score?: number;
+    category?: string;
+    explanation?: string;
+    pairs?: { a: string; b: string; score: number }[];
+  };
+  interval_stats?: Record<string, number>;
+  input_hash?: string;
   disclaimer: string;
   created_at: string;
 }
@@ -276,10 +285,10 @@ export interface CompareResult {
     fake_probability: number;
     risk_level: string;
     purpose: string;
-    account_age_days: number;
-    followers: number;
-    following: number;
-    average_likes: number;
+    account_age_days: number | null;
+    followers: number | null;
+    following: number | null;
+    average_likes: number | null;
     engagement_rate: number;
     username_risk: number;
     bio_risk: number;
@@ -294,20 +303,20 @@ export const emptyProfile = (): ProfileInput => ({
   platform: "instagram",
   display_name: "",
   profile_url: "",
-  followers: 0,
-  following: 0,
-  posts: 0,
-  account_age_days: 180,
+  followers: null,
+  following: null,
+  posts: null,
+  account_age_days: null,
   bio: "",
   verified: false,
-  has_profile_picture: true,
-  external_links: 0,
-  profile_fields_completed: 5,
+  has_profile_picture: null,
+  external_links: null,
+  profile_fields_completed: null,
   total_profile_fields: 8,
-  average_likes: 0,
-  average_comments: 0,
-  average_shares: 0,
-  posting_frequency_per_week: 2,
+  average_likes: null,
+  average_comments: null,
+  average_shares: null,
+  posting_frequency_per_week: null,
   has_external_link: false,
   captions: [],
   hashtags: [],

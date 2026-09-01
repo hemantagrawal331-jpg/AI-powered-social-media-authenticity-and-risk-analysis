@@ -16,16 +16,17 @@ from app.schemas.profile import ProfileInput
 
 # Approximate mix requested in the product spec.
 ARCHETYPE_WEIGHTS = {
-    "genuine_personal": 0.28,
-    "genuine_creator": 0.14,
-    "genuine_business": 0.10,
-    "spam": 0.12,
-    "basic_bot": 0.08,
+    "genuine_personal": 0.26,
+    "genuine_creator": 0.13,
+    "genuine_business": 0.09,
+    "news_aggregator": 0.04,
+    "spam": 0.11,
+    "basic_bot": 0.07,
     "sophisticated_bot": 0.08,
     "coordinated": 0.08,
     "impersonation": 0.06,
     "compromised": 0.03,
-    "unknown": 0.03,
+    "unknown": 0.05,
 }
 
 INAUTHENTIC_ARCHETYPES = {
@@ -71,14 +72,32 @@ def generate_training_profiles(count: int = 20000, seed: int = 42) -> list[tuple
         profile = _one(rng, archetype, index)
         label = 1 if archetype in INAUTHENTIC_ARCHETYPES else 0
         if archetype == "compromised":
-            label = 1
+            # Compromised-looking is a risk state, not a simple fake class.
+            label = 1 if rng.random() < 0.7 else 0
+        if archetype == "news_aggregator":
+            label = 1 if rng.random() < 0.18 else 0
         if archetype == "unknown":
             label = 1 if rng.random() < 0.35 else 0
         # Label noise so classes are not perfectly separable.
         if rng.random() < 0.04:
             label = 1 - label
+        if rng.random() < 0.08:
+            _drop_optional_fields(profile, rng)
         rows.append((profile, label, archetype))
     return rows
+
+
+def _drop_optional_fields(profile: ProfileInput, rng: random.Random) -> None:
+    """Missingness is not a class signal — apply across archetypes."""
+    if rng.random() < 0.35:
+        profile.account_age_days = None
+    if rng.random() < 0.3:
+        profile.posting_frequency_per_week = None
+    if rng.random() < 0.2:
+        profile.average_shares = None
+    if rng.random() < 0.15:
+        profile.follower_usernames = []
+        profile.post_timestamps = []
 
 
 def _one(rng: random.Random, archetype: str, index: int) -> ProfileInput:
@@ -277,6 +296,33 @@ def _one(rng: random.Random, archetype: str, index: int) -> ProfileInput:
         periodic = False
         spammy = True
         timestamps_regular = False
+    elif archetype == "news_aggregator":
+        username = f"{rng.choice(['wire', 'desk', 'brief', 'daily'])}.{rng.choice(LAST)[:4]}{rng.randint(1, 20)}"
+        followers = _lognormal(rng, 8.0, 0.6, 4000, 500000)
+        following = int(followers * rng.uniform(0.01, 0.12)) + 20
+        age = _gamma_age(rng, 1600, 400, 6000)
+        likes = max(8, int(followers * rng.uniform(0.004, 0.018)))
+        comments = max(1, int(likes * rng.uniform(0.02, 0.08)))
+        posts = rng.randint(400, 8000)
+        freq = rng.uniform(20, 80)
+        bio = rng.choice(
+            [
+                "Headlines and links. Not a journalist — an aggregator.",
+                "Wire desk. Source links in every post.",
+                "Automated headlines. Corrections via email.",
+            ]
+        )
+        verified = rng.random() > 0.55
+        captions = [
+            "Morning briefing: https://news.example/a",
+            "Market open notes https://news.example/b",
+            "Evening wrap https://news.example/c",
+        ]
+        hashtags = ["news", "headlines"]
+        growth = rng.randint(10, 200)
+        periodic = True
+        spammy = False
+        timestamps_regular = True
     else:  # unknown / ambiguous
         username = f"{rng.choice(FIRST)}{rng.randint(10, 9999)}"
         followers = _lognormal(rng, 5.8, 1.4, 5, 60000)

@@ -28,13 +28,15 @@ def detect_cluster(profile: ProfileInput, samples: list[dict]) -> ClusterInfo:
         if tag_overlap >= 2:
             score += 20
             signals.append("Shared hashtags")
-        if abs(profile.posting_frequency_per_week - float(data.get("posting_frequency_per_week", 0))) <= 3:
-            if profile.posting_frequency_per_week >= 8:
+        freq = profile.posting_frequency_per_week
+        other_freq = data.get("posting_frequency_per_week")
+        if freq is not None and other_freq is not None and abs(freq - float(other_freq)) <= 3:
+            if freq >= 8:
                 score += 10
                 signals.append("Similar posting cadence")
-        er_a = _er(profile.average_likes, profile.followers)
+        er_a = _er(profile.measure("average_likes"), profile.count("followers"))
         er_b = _er(float(data.get("average_likes", 0)), int(data.get("followers", 1)))
-        if abs(er_a - er_b) < 0.4 and profile.followers >= 2000 and er_a < 1:
+        if abs(er_a - er_b) < 0.4 and profile.count("followers") >= 2000 and er_a < 1:
             score += 15
             signals.append("Similarly depressed engagement")
 

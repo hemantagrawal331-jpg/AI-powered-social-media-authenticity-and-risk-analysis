@@ -69,15 +69,15 @@ export function Compare() {
                 <dl className="mt-4 space-y-1 text-sm text-slate-300">
                   <div className="flex justify-between">
                     <dt>Age (days)</dt>
-                    <dd>{item.account_age_days}</dd>
+                    <dd>{item.account_age_days ?? "—"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Followers</dt>
-                    <dd>{item.followers.toLocaleString()}</dd>
+                    <dd>{item.followers == null ? "—" : item.followers.toLocaleString()}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Avg likes</dt>
-                    <dd>{item.average_likes}</dd>
+                    <dd>{item.average_likes ?? "—"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt>Engagement rate</dt>

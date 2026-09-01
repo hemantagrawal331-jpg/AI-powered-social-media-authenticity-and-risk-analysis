@@ -20,16 +20,17 @@ shared support:
 
 | Archetype | Share | Binary label |
 |-----------|-------|----------------|
-| Genuine personal | 28% | 0 |
-| Genuine creator | 14% | 0 |
-| Genuine business | 10% | 0 |
-| Spam | 12% | 1 |
-| Basic bot | 8% | 1 |
+| Genuine personal | 26% | 0 |
+| Genuine creator | 13% | 0 |
+| Genuine business | 9% | 0 |
+| Spam | 11% | 1 |
+| Basic bot | 7% | 1 |
 | Sophisticated bot | 8% | 1 (held out of training) |
 | Coordinated | 8% | 1 |
 | Impersonation | 6% | 1 |
 | Compromised-looking | 3% | 1 |
-| Unknown / ambiguous | 3% | noisy |
+| News / aggregator | 4% | mostly 0 (automation ≠ fake) |
+| Unknown / ambiguous | 5% | noisy |
 
 About 4% of labels are flipped so the classes are not perfectly separable.
 
@@ -56,8 +57,13 @@ Default generator size: **20,000** accounts (scalable). Training uses:
 Plus:
 
 - **Archetype holdout:** `sophisticated_bot` never enters the training mass.
+- **Temporal split:** train on older accounts, test on newer ones.
 - **Adversarial ablation:** content-only RF vs metadata/behavior RF on that holdout.
-- Fairness slices on the test set: new accounts, numeric usernames, high-frequency posters.
+- Fairness slices on the test set: new accounts, numeric usernames, high-frequency posters,
+  low-follower accounts, private accounts, multilingual/mixed language.
+
+About 8% of generated rows randomly drop age, posting frequency, or neighbor samples so
+the model cannot treat completeness as a class signal.
 
 ## External datasets
 
