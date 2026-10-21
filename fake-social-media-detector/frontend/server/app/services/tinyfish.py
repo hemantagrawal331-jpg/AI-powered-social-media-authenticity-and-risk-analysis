@@ -100,18 +100,12 @@ def fetch_public_profile(
     if not key:
         raise TinyFishError("TinyFish is not configured. Set TINYFISH_API_KEY on the server.", 503)
 
-    limit = max(20, min(int(timeout) - 10, 50))
     body = {
         "url": public_url,
         "goal": GOAL,
         "output_schema": OUTPUT_SCHEMA,
         "browser_profile": "lite",
         "use_vault": False,
-        "api_integration": "fakeguard",
-        "agent_config": {
-            "max_steps": 20,
-            "max_duration_seconds": limit,
-        },
     }
     try:
         payload = _post_run(body, api_key=key, timeout=timeout, opener=opener)
