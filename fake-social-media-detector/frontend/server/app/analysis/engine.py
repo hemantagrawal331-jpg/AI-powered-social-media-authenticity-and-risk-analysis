@@ -280,7 +280,9 @@ def _reasons(
             )
         )
 
-    if engagement["engagement_rate"] < 0.8 and engagement["average_likes"] >= 0:
+    rate = engagement.get("engagement_rate")
+    likes = engagement.get("average_likes")
+    if rate is not None and likes is not None and rate < 0.8:
         add(
             "Extremely low engagement" if engagement["score"] >= 55 else "Soft engagement",
             "high" if engagement["score"] >= 55 else "medium",

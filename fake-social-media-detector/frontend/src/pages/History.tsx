@@ -108,7 +108,7 @@ export function History() {
                   <td>@{row.username}</td>
                   <td>{row.platform}</td>
                   <td>
-                    <RiskBadge level={`${row.risk_level} (${Math.round(row.fake_probability)}%)`} />
+                    <RiskBadge level={`${row.risk_level} · combined ${Math.round(row.fake_probability)}`} />
                   </td>
                   <td>{row.purpose}</td>
                   <td className="font-mono text-xs">{new Date(row.created_at).toLocaleString()}</td>

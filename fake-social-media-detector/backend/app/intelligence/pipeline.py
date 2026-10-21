@@ -50,10 +50,9 @@ def _narrative(classification: str, probability: float, confidence: str, evidenc
             f"not treated as fraud."
         )
     return (
-        f"Based on the observable evidence provided, this account shows an estimated {pct}% "
-        f"probability of elevated inauthenticity risk (authenticity {auth}%). "
-        f"Model confidence is {confidence.lower()}. This is a probabilistic estimate, not a determination "
-        f"that the account is fake or genuine."
+        f"Combined risk score is {pct} on a 0–100 scale (authenticity reading {auth}). "
+        f"This is a relative risk indicator, not the percentage chance that the account is fake. "
+        f"Model confidence is {confidence.lower()}."
     )
 
 

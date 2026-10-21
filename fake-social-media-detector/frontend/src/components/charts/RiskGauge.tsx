@@ -4,7 +4,7 @@ export function RiskGauge({ value }: { value: number }) {
 
   return (
     <div className="mx-auto w-full max-w-[16rem]">
-      <svg viewBox="0 0 200 120" className="w-full" role="img" aria-label={`Inauthenticity risk ${Math.round(clamped)} percent`}>
+      <svg viewBox="0 0 200 120" className="w-full" role="img" aria-label={`Combined risk score ${Math.round(clamped)}`}>
         <path d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="#e3dcd0" strokeWidth="10" />
         <path
           d="M20 110 A80 80 0 0 1 180 110"
@@ -16,8 +16,8 @@ export function RiskGauge({ value }: { value: number }) {
         />
       </svg>
       <div className="-mt-8 text-center">
-        <p className="font-display text-5xl leading-none">{Math.round(clamped)}%</p>
-        <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted">Inauthenticity risk</p>
+        <p className="font-display text-5xl leading-none">{Math.round(clamped)}</p>
+        <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted">Combined risk score</p>
       </div>
     </div>
   );

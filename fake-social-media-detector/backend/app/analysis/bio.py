@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import re
 
+from app.intelligence.lexicon import classify_lexicon
 from app.utils.sanitize import clamp
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
-    "giveaway": ("giveaway", "free followers", "free likes", "gift", "prize"),
+    "giveaway": ("free followers", "free likes", "gift", "prize"),
     "crypto": ("crypto", "bitcoin", "btc", "eth", "airdrop", "nft", "token"),
     "investment": ("invest", "forex", "trading signal", "guaranteed return", "double your"),
     "adult_spam": ("onlyfans", "adult", "xxx", "hot pics", "cam girl"),
-    "scam_offer": ("send", "get back", "click the link", "click here", "claim now", "limited slots"),
+    "scam_offer": ("get back", "click the link", "click here", "claim now", "limited slots"),
     "urgency": ("act now", "hurry", "limited time", "last chance", "immediately", "asap"),
     "money": ("earn money", "make money", "cash", "profit", "passive income", "rich"),
     "impersonation": ("official account", "real account", "not fake", "verified here"),
-    "promo_spam": ("dm for promo", "link in bio", "follow back", "follow4follow", "shop now"),
+    "promo_spam": ("follow back", "follow4follow"),
 }
 
 
@@ -42,6 +43,30 @@ def analyze_bio(bio: str, *, verified: bool, external_links: int) -> dict:
             hits[group] = found
             score += min(22, 8 + 5 * len(found))
             reasons.append(f"{group.replace('_', ' ').title()} language: {', '.join(found[:3])}")
+
+    lexicon = classify_lexicon(lowered)
+    if lexicon["commercial"]:
+        hits["commercial"] = list(lexicon["commercial"])
+        reasons.append(
+            "Ordinary commercial language: "
+            + ", ".join(lexicon["commercial"][:3])
+            + ". Not scored as phishing."
+        )
+    if lexicon["credential"]:
+        hits["credential"] = list(lexicon["credential"])
+        score += min(22, 8 + 5 * len(lexicon["credential"]))
+        reasons.append(
+            "Credential language: "
+            + ", ".join(lexicon["credential"][:3])
+            + ". A keyword match is not proof of phishing."
+        )
+    if lexicon["payment"] and lexicon["payment_in_context"]:
+        hits["payment"] = list(lexicon["payment"])
+        score += min(22, 8 + 5 * len(lexicon["payment"]))
+        reasons.append("Payment wording appears with credential or impersonation language.")
+    elif lexicon["payment"]:
+        hits["payment"] = list(lexicon["payment"])
+        reasons.append("Payment wording had no credential or impersonation context, so it was not scored as phishing.")
 
     # A single keyword in a long otherwise-normal bio is not enough.
     if len(hits) == 1 and len(text) > 80:

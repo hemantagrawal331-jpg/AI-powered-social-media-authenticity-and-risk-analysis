@@ -83,13 +83,14 @@ export function Results() {
           </div>
         </div>
         <p className="mt-6 max-w-3xl text-sm leading-7 text-ink-soft">
-          {result.explanation ||
-            `Based on the observable evidence provided, this account shows an estimated ${Math.round(result.fake_probability)}% probability of elevated inauthenticity risk.`}
+            {result.explanation ||
+            `Combined risk score is ${Math.round(result.fake_probability)} on a 0–100 scale. This is a relative risk indicator, not the percentage chance the account is fake.`}
         </p>
         <dl className="mt-6 grid gap-4 border-y border-line py-4 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-[11px] uppercase tracking-wide text-muted">Inauthenticity risk</dt>
-            <dd className="mt-1 font-mono">{Math.round(result.inauthenticity_probability ?? result.fake_probability)}%</dd>
+            <dt className="text-[11px] uppercase tracking-wide text-muted">Combined risk score</dt>
+            <dd className="mt-1 font-mono">{Math.round(result.inauthenticity_probability ?? result.fake_probability)}</dd>
+            <dd className="mt-1 text-xs text-muted">Relative indicator, not the chance the account is fake.</dd>
           </div>
           <div>
             <dt className="text-[11px] uppercase tracking-wide text-muted">Model confidence</dt>
@@ -117,8 +118,8 @@ export function Results() {
         </p>
         {result.model?.available && (
           <p className="mt-1 text-xs text-muted">
-            Calibrated ML {result.model.ml_probability ?? "—"}% · rules {result.model.heuristic_probability ?? "—"}% ·
-            logistic {result.model.logistic_probability ?? "—"}% · anomaly {result.model.anomaly_probability ?? "—"}%
+            Model-estimated P(inauthentic class) {result.model.ml_probability ?? "—"} · Platt-adjusted on the synthetic validation split, not the combined score.
+            Rules {result.model.heuristic_probability ?? "—"} · logistic {result.model.logistic_probability ?? "—"} · anomaly {result.model.anomaly_probability ?? "—"}, uncalibrated.
           </p>
         )}
         <div className="mt-6 flex flex-wrap gap-3">

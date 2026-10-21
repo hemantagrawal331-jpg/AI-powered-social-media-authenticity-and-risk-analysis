@@ -189,6 +189,8 @@ export interface AnalysisResult {
     model_version?: string;
     feature_schema?: string;
     analysis_engine?: string;
+    probability_meaning?: string;
+    combined_score_meaning?: string;
   };
   history_signals?: Record<string, unknown>;
   authenticity_score?: number;

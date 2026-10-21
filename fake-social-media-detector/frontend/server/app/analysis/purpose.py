@@ -77,7 +77,7 @@ def classify_purpose(
     if content_score >= 60:
         scores["Spam Account"] += 20
 
-    if any(word in bio for word in ("send", "get back", "bitcoin", "double", "guaranteed")):
+    if any(word in bio for word in ("send money", "wire transfer", "bitcoin", "double your", "guaranteed", "otp", "password")):
         scores["Scam/Fraud Risk"] += 50
     if bio_score >= 70 and age_score >= 55:
         scores["Scam/Fraud Risk"] += 20

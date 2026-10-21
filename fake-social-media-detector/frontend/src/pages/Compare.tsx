@@ -75,8 +75,8 @@ export function Compare() {
           <div className="grid gap-4 lg:grid-cols-2">
             {result.summary.map((item) => (
               <GlassCard key={item.username} title={`@${item.username}`}>
-                <p className="font-display text-5xl leading-none">{Math.round(item.fake_probability)}%</p>
-                <p className="mt-1 text-xs text-muted">Estimated inauthenticity risk</p>
+                <p className="font-display text-5xl leading-none">{Math.round(item.fake_probability)}</p>
+                <p className="mt-1 text-xs text-muted">Combined risk score, not a probability</p>
                 <div className="mt-2">
                   <RiskBadge level={item.risk_level} />
                 </div>

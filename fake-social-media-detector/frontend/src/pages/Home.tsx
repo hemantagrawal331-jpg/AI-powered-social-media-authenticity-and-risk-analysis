@@ -170,10 +170,11 @@ export function Home() {
         <div>
           <h2 className="font-display text-3xl tracking-tight">What the score is</h2>
           <p className="mt-4 max-w-prose text-sm leading-7 text-ink-soft">
-            A calibrated mix of a random forest, gradient boosting, a logistic baseline, and an
-            isolation-forest anomaly score. Domain weights fall to zero when that domain has no
-            data. Content is discounted because a polished bio is cheap to write. Open Model lab for
-            the synthetic holdout metrics. Those numbers are not live-platform accuracy.
+            The result has two different numbers. The model-estimated probability is the Platt-adjusted
+            chance of the inauthentic class, fit on synthetic validation data. The combined risk score
+            mixes that estimate with rules and is not a calibrated probability that an account is fake.
+            Domain weights fall to zero when that domain has no data. Open Model lab for the synthetic
+            holdout metrics. Those numbers are not live-platform accuracy.
           </p>
         </div>
         <div>

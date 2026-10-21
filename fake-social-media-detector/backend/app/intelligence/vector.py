@@ -144,6 +144,9 @@ def extract_vector(profile: ProfileInput) -> list[float]:
     posts = profile.count("posts")
     age_observed = 1.0 if profile.account_age_days is not None else 0.0
     age = float(profile.account_age_days) if profile.account_age_days is not None else AGE_IMPUTE_NEUTRAL
+    # The saved model was trained with missing likes, comments, and shares
+    # filled as 0 inside this 46-length vector. That fill is not a fraud
+    # finding. Rule scorers must use profile.observed() and skip the domain.
     likes = profile.measure("average_likes")
     comments = profile.measure("average_comments")
     shares = profile.measure("average_shares")

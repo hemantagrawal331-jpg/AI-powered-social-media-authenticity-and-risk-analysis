@@ -10,7 +10,8 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass, field
 
-from app.intelligence.config import KNOWN_HANDLES, SPAM_TERMS
+from app.intelligence.config import KNOWN_HANDLES
+from app.intelligence.lexicon import classify_lexicon
 from app.intelligence import stats
 from app.intelligence.graph import network_features
 from app.intelligence.language import language_consistency
@@ -118,7 +119,9 @@ def score_identity(profile: ProfileInput) -> DomainScore:
         risk += 8
         reasons.append("Repeated character runs appear in the handle.")
     lowered = username.lower()
-    promo_hits = [term for term in ("deal", "giveaway", "official", "crypto", "follow", "prize", "promo", "shop") if term in lowered]
+    if "shop" in lowered:
+        reasons.append("Handle includes shop. That is recorded as commercial naming, not as a fraud indicator.")
+    promo_hits = [term for term in ("deal", "giveaway", "official", "crypto", "follow", "prize", "promo") if term in lowered]
     if promo_hits or float(structure["suspicious_token_count"]) >= 1 or (extra and extra.suspicious_keywords):
         risk += min(24, 8 * max(len(promo_hits), 1))
         reasons.append(f"Handle contains promotional tokens ({', '.join(promo_hits[:3]) or structure['suspicious_tokens']}).")
@@ -206,13 +209,27 @@ def score_profile(profile: ProfileInput) -> DomainScore:
 
 def score_engagement(profile: ProfileInput) -> DomainScore:
     groups = evidence_groups(profile)
-    if not groups["engagement"] and profile.followers is None:
-        return DomainScore("engagement", 50, 50, 0.1, 0, 1.0, ["Engagement fields not supplied; domain weight dropped."])
-    likes = profile.measure("average_likes")
-    comments = profile.measure("average_comments")
-    shares = profile.measure("average_shares")
+    series = [point.likes for point in profile.engagement_history if point.likes is not None]
+    likes_observed = profile.average_likes is not None or bool(series)
+    if not likes_observed:
+        return DomainScore(
+            "engagement",
+            50,
+            50,
+            0.1,
+            0,
+            1.0,
+            ["Average likes were not supplied. Missing engagement was not scored as low interaction."],
+        )
+    likes = float(profile.average_likes) if profile.average_likes is not None else sum(series) / len(series)
+    comments = float(profile.average_comments) if profile.average_comments is not None else 0.0
+    shares = float(profile.average_shares) if profile.average_shares is not None else 0.0
     followers = max(profile.count("followers"), 1)
-    er = (likes + comments + shares) / followers
+    er = likes / followers
+    if profile.average_comments is not None:
+        er += comments / followers
+    if profile.average_shares is not None:
+        er += shares / followers
     expected, std = expected_engagement(profile.count("followers"))
     deviation = (er - expected) / max(std, 1e-6)
     series = [point.likes for point in profile.engagement_history]
@@ -238,7 +255,7 @@ def score_engagement(profile: ProfileInput) -> DomainScore:
         risk = max(4, risk - 8)
         reasons.append("Engagement varies across posts, which is typical of organic reach.")
         signals.append(Signal("organic_variance", "positive", 0.45, "engagement", f"CV={cv:.2f}", reasons[-1], f"{cv:.2f}", "0.25–1.4"))
-    if lc_ratio >= 400 and likes >= 500:
+    if profile.average_comments is not None and lc_ratio >= 400 and likes >= 500:
         risk += 14
         reasons.append("Likes dwarf comments — comments are harder to fake cheaply.")
     _, benford_p, n_digits = stats.benford_chi_square(series)
@@ -307,7 +324,11 @@ def score_content(profile: ProfileInput) -> DomainScore:
         return DomainScore("content", 50, 50, 0.08, 0, 1.0, ["No bio or captions supplied. Content weight dropped (and content is easy to fake with an LLM)."])
     dup = stats.duplicate_rate(list(profile.captions or []))
     ttr = stats.type_token_ratio(blob)
-    hits = [term for term in SPAM_TERMS if term in blob.lower()]
+    lexicon = classify_lexicon(blob)
+    commercial = list(lexicon["commercial"])
+    credential = list(lexicon["credential"])
+    payment = list(lexicon["payment"])
+    scam = list(lexicon["scam"])
     hashtag_density = len(profile.hashtags) / max(len(stats.tokenize(blob)), 1)
     risk = 8.0
     reasons: list[str] = []
@@ -316,23 +337,64 @@ def score_content(profile: ProfileInput) -> DomainScore:
         risk += 22
         reasons.append("Captions contain a high near-duplicate rate.")
         signals.append(Signal("duplicate_content", "risk", 0.7, "content", f"duplicate rate {dup:.2f}", reasons[-1], f"{dup:.0%}", "<30%"))
-    if hits:
-        # Lexical solicitation is not the same as an LLM-written human bio.
-        # It is still contextual, but it must be allowed to move the posterior.
-        risk += min(58, 12 * len(hits))
-        reasons.append(f"Promotional/solicitation phrasing: {', '.join(hits[:4])}. Contextual, not automatic proof.")
+    if commercial:
+        reasons.append(
+            "Ordinary commercial language ("
+            + ", ".join(commercial[:4])
+            + "). Not scored as phishing."
+        )
+    if credential:
+        risk += min(36, 16 * len(credential))
+        reasons.append(
+            "Credential language ("
+            + ", ".join(credential[:4])
+            + "). A keyword match is not proof of phishing."
+        )
         signals.append(
             Signal(
-                "solicitation_lexicon",
+                "credential_language",
                 "risk",
-                min(1.0, 0.25 * len(hits)),
+                min(1.0, 0.35 * len(credential)),
                 "content",
-                f"{len(hits)} lexicon hits",
+                f"{len(credential)} credential phrases",
                 reasons[-1],
-                str(len(hits)),
-                "0–1 ordinary bios",
+                str(len(credential)),
+                "no credential request",
             )
         )
+    if scam:
+        risk += min(36, 12 * len(scam))
+        reasons.append(
+            "High-pressure money language ("
+            + ", ".join(scam[:4])
+            + "). Not the same thing as a shop promotion."
+        )
+        signals.append(
+            Signal(
+                "money_pressure_lexicon",
+                "risk",
+                min(1.0, 0.3 * len(scam)),
+                "content",
+                f"{len(scam)} phrases",
+                reasons[-1],
+                str(len(scam)),
+                "absent",
+            )
+        )
+    if payment and lexicon["payment_in_context"]:
+        risk += min(24, 12 * len(payment))
+        reasons.append(
+            "Payment wording ("
+            + ", ".join(payment[:3])
+            + ") appears with credential, impersonation, or high-pressure money language."
+        )
+    elif payment:
+        reasons.append(
+            "Payment wording ("
+            + ", ".join(payment[:3])
+            + ") had no credential or impersonation context, so it was not scored as phishing."
+        )
+    hits = credential or scam or (payment and lexicon["payment_in_context"])
     confidence = 0.86 if hits else (0.72 if dup >= 0.4 else 0.45)
     if hashtag_density >= 0.45:
         risk += 8

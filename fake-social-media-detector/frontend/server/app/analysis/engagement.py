@@ -9,51 +9,61 @@ from app.utils.sanitize import clamp, safe_ratio
 def analyze_engagement(profile: ProfileInput) -> dict:
     followers = max(profile.count("followers"), 0)
     following = max(profile.count("following"), 0)
-    likes = max(profile.measure("average_likes"), 0)
-    comments = max(profile.measure("average_comments"), 0)
+    likes_observed = profile.average_likes is not None
+    comments_observed = profile.average_comments is not None
+    likes = float(profile.average_likes) if likes_observed else None
+    comments = float(profile.average_comments) if comments_observed else None
 
-    engagement_rate = safe_ratio(likes + comments, followers) * 100
-    likes_to_followers = safe_ratio(likes, followers) * 100
-    comments_to_likes = safe_ratio(comments, likes) * 100
+    engagement_rate = None
+    likes_to_followers = None
+    comments_to_likes = None
+    if likes_observed:
+        engagement_rate = safe_ratio((likes or 0) + (comments or 0 if comments_observed else 0), followers) * 100
+        likes_to_followers = safe_ratio(likes or 0, followers) * 100
+        if comments_observed:
+            comments_to_likes = safe_ratio(comments or 0, likes or 0) * 100
     follow_ratio = safe_ratio(followers, following) if following else float(followers)
     following_to_followers = safe_ratio(following, followers) if followers else float(following)
 
     score = 12.0
     reasons: list[str] = []
 
-    # High follower count + tiny likes is a classic purchased-audience signal.
-    if followers >= 20000 and engagement_rate < 0.5:
-        score += 70
-        reasons.append(
-            f"Extremely low engagement ({engagement_rate:.2f}%) for {followers:,} followers"
-        )
-    elif followers >= 5000 and engagement_rate < 0.6:
-        score += 58
-        reasons.append(
-            f"Very low engagement ({engagement_rate:.2f}%) for {followers:,} followers"
-        )
-    elif followers >= 1000 and engagement_rate < 1.0:
-        score += 36
-        reasons.append(f"Below-typical engagement rate ({engagement_rate:.2f}%)")
-    elif followers >= 200 and engagement_rate < 0.4:
-        score += 24
-        reasons.append("Almost no measurable audience interaction")
-    elif 1.0 <= engagement_rate <= 8.0:
-        score -= 8
-    elif engagement_rate > 25 and followers >= 2000:
-        score += 16
-        reasons.append("Unusually high engagement that can indicate pods or inflation")
+    if not likes_observed:
+        reasons.append("Average likes were not supplied. Missing likes were not treated as zero engagement.")
+    else:
+        # High follower count + tiny likes is a classic purchased-audience signal.
+        if followers >= 20000 and engagement_rate < 0.5:
+            score += 70
+            reasons.append(
+                f"Extremely low engagement ({engagement_rate:.2f}%) for {followers:,} followers"
+            )
+        elif followers >= 5000 and engagement_rate < 0.6:
+            score += 58
+            reasons.append(
+                f"Very low engagement ({engagement_rate:.2f}%) for {followers:,} followers"
+            )
+        elif followers >= 1000 and engagement_rate < 1.0:
+            score += 36
+            reasons.append(f"Below-typical engagement rate ({engagement_rate:.2f}%)")
+        elif followers >= 200 and engagement_rate < 0.4:
+            score += 24
+            reasons.append("Almost no measurable audience interaction")
+        elif engagement_rate is not None and 1.0 <= engagement_rate <= 8.0:
+            score -= 8
+        elif engagement_rate is not None and engagement_rate > 25 and followers >= 2000:
+            score += 16
+            reasons.append("Unusually high engagement that can indicate pods or inflation")
 
-    if followers >= 3000 and likes < 20:
-        score += 18
-        reasons.append("High follower count with almost no likes")
-    elif followers >= 20000 and likes < 120:
-        score += 10
-        reasons.append("Likes are tiny relative to a large claimed audience")
+        if followers >= 3000 and likes < 20:
+            score += 18
+            reasons.append("High follower count with almost no likes")
+        elif followers >= 20000 and likes < 120:
+            score += 10
+            reasons.append("Likes are tiny relative to a large claimed audience")
 
-    if likes >= 50 and comments_to_likes < 2 and followers >= 2000:
-        score += 12
-        reasons.append("Comments are far lower than likes (possible inflated likes)")
+        if comments_observed and likes >= 50 and comments_to_likes is not None and comments_to_likes < 2 and followers >= 2000:
+            score += 12
+            reasons.append("Comments are far lower than likes (possible inflated likes)")
 
     ratio_score = 8.0
     if following >= 2000 and followers < 400:
@@ -98,9 +108,9 @@ def analyze_engagement(profile: ProfileInput) -> dict:
         "risk_level": _band(combined),
         "average_likes": likes,
         "average_comments": comments,
-        "engagement_rate": round(engagement_rate, 3),
-        "likes_to_followers_ratio": round(likes_to_followers, 3),
-        "comments_to_likes_ratio": round(comments_to_likes, 3),
+        "engagement_rate": None if engagement_rate is None else round(engagement_rate, 3),
+        "likes_to_followers_ratio": None if likes_to_followers is None else round(likes_to_followers, 3),
+        "comments_to_likes_ratio": None if comments_to_likes is None else round(comments_to_likes, 3),
         "followers_to_following_ratio": round(follow_ratio, 3) if following else None,
         "following_to_followers_ratio": round(following_to_followers, 3),
         "sudden_spike": spike,

@@ -140,6 +140,14 @@ class ModelInfo(BaseModel):
     model_version: str = "v2.0.0"
     feature_schema: str = "v2"
     analysis_engine: str = "hybrid-ensemble"
+    probability_meaning: str = (
+        "Model-estimated probability of the inauthentic class after Platt adjustment "
+        "on the synthetic validation split. It is not the combined risk score."
+    )
+    combined_score_meaning: str = (
+        "Combined risk score from the model estimate and the rules. "
+        "It was not validated as the percentage chance that an account is fake."
+    )
 
 
 class DomainScoreCard(BaseModel):

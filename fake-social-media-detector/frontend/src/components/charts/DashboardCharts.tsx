@@ -38,7 +38,7 @@ export function DashboardCharts({ result }: { result: AnalysisResult }) {
     value: card.score,
   }));
   const donut = [
-    { name: "Inauthenticity risk", value: result.fake_probability },
+    { name: "Combined risk score", value: result.fake_probability },
     { name: "Residual", value: Math.max(0, 100 - result.fake_probability) },
   ];
   const bars = result.score_contributions.map((item) => ({

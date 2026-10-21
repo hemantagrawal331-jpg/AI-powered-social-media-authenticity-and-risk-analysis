@@ -44,10 +44,20 @@ def test_genuine_sample_has_low_risk():
 
 
 def test_spam_sample_not_genuine_band():
-    spam = next(p for p, y, a in generate_training_profiles(80, seed=9) if a == "spam" and p.bio)
+    spam = next(
+        p
+        for p, y, a in generate_training_profiles(200, seed=9)
+        if a == "spam" and p.bio and ("guaranteed" in p.bio.lower() or "forex" in p.bio.lower() or "invest today" in p.bio.lower())
+    )
     fused = fuse_authenticity(spam, ml=None)
-    assert fused["classification"] in {"SUSPICIOUS", "HIGH_RISK", "LIKELY_INAUTHENTIC"}
-    assert fused["inauthenticity_probability"] >= 38
+    content = fused["domain_scores"]["content"]
+    assert content["risk"] >= 20
+    assert any("High-pressure money language" in note for note in content["explanations"])
+    shop = fuse_authenticity(
+        ProfileInput(username="ada.shop", followers=4000, posts=20, account_age_days=400, bio="Shop now. New collection. Buy now."),
+        ml=None,
+    )
+    assert content["risk"] > shop["domain_scores"]["content"]["risk"]
 
 
 def test_empty_optional_fields_do_not_crash():

@@ -78,7 +78,6 @@ def analyze_behavior(profile: ProfileInput) -> dict:
     followers = profile.count("followers")
     following = profile.count("following")
     posts = profile.count("posts")
-    likes = profile.measure("average_likes")
     if age is not None and age <= 21 and (follower_spike or followers >= 8000):
         score += 12
         reasons.append("Rapid audience assembly on a new account")
@@ -94,7 +93,12 @@ def analyze_behavior(profile: ProfileInput) -> dict:
 
     bot_like = (
         (profile.username.lower().startswith("user") and any(ch.isdigit() for ch in profile.username))
-        or ((not frequency_missing) and freq >= 30 and likes < 5)
+        or (
+            profile.average_likes is not None
+            and (not frequency_missing)
+            and freq >= 30
+            and profile.average_likes < 5
+        )
         or (followers >= 5000 and posts <= 5 and not frequency_missing)
     )
     if bot_like:

@@ -27,7 +27,7 @@ export function About() {
             ["Server", "FastAPI, Pydantic, SQLite, Pillow, ReportLab."],
             ["Model", "Calibrated random forest, histogram gradient boosting, logistic regression, isolation forest."],
             ["Fusion", "Evidence-weighted log-odds across identity, profile, engagement, time, content, network, language, and coordination."],
-            ["Calibration", "Platt stacking, with isotonic as a fallback. ECE and Brier are in Model lab."],
+            ["Calibration", "Platt adjustment of the forest stack on synthetic validation. The combined risk score is a separate mix and is not that probability."],
             ["Out of distribution", "Isolation forest, centroid distance, and the pattern of missing features."],
           ].map(([term, detail]) => (
             <div key={term} className="grid gap-1 py-3 sm:grid-cols-[11rem_1fr]">
