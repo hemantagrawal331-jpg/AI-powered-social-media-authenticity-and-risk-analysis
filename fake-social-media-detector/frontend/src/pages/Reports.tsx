@@ -17,8 +17,8 @@ export function Reports() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl">Generated reports</h1>
-      <p className="text-sm text-slate-400">
+      <h1 className="font-display text-4xl tracking-tight">Reports</h1>
+      <p className="text-sm text-muted">
         Reports are created from a stored analysis. Use Download Report on the results page or
         regenerate from history.
       </p>
@@ -26,19 +26,19 @@ export function Reports() {
       <GlassCard>
         <div className="space-y-3">
           {rows.map((row) => (
-            <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-3">
+            <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3 last:border-b-0">
               <div>
                 <p className="font-medium">@{row.username}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted">
                   {row.format.toUpperCase()} · analysis #{row.analysis_id} · {new Date(row.created_at).toLocaleString()}
                 </p>
               </div>
-              <a href={api.reportDownloadUrl(row.id)} className="text-sm text-accent">
+              <a href={api.reportDownloadUrl(row.id)} className="text-sm underline decoration-line underline-offset-4">
                 Download
               </a>
             </div>
           ))}
-          {rows.length === 0 && <p className="text-sm text-slate-500">No reports generated yet.</p>}
+          {rows.length === 0 && <p className="text-sm text-muted">No reports generated yet.</p>}
         </div>
       </GlassCard>
     </div>

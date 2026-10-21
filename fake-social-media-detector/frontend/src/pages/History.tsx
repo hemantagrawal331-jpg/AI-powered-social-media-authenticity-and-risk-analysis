@@ -73,13 +73,13 @@ export function History() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl">Analysis history</h1>
-          <p className="mt-1 text-sm text-slate-400">Optional local store. Select two rows to inspect change between analyses.</p>
+          <h1 className="font-display text-4xl tracking-tight">History</h1>
+          <p className="mt-2 max-w-prose text-sm text-muted">Saved with this app. Select two rows to open them side by side.</p>
         </div>
         <button
           type="button"
           onClick={() => void compareSelected()}
-          className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+          className="btn-ghost"
         >
           Compare selected
         </button>
@@ -88,7 +88,7 @@ export function History() {
       <GlassCard>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-slate-400">
+            <thead className="text-muted">
               <tr>
                 <th className="pb-3" />
                 <th>Username</th>
@@ -101,9 +101,9 @@ export function History() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-t border-white/5">
+                <tr key={row.id} className="border-t border-line">
                   <td className="py-3">
-                    <input type="checkbox" checked={selected.includes(row.id)} onChange={() => toggle(row.id)} />
+                    <input type="checkbox" aria-label={`Select @${row.username}`} checked={selected.includes(row.id)} onChange={() => toggle(row.id)} />
                   </td>
                   <td>@{row.username}</td>
                   <td>{row.platform}</td>
@@ -113,13 +113,13 @@ export function History() {
                   <td>{row.purpose}</td>
                   <td className="font-mono text-xs">{new Date(row.created_at).toLocaleString()}</td>
                   <td className="space-x-2 text-right">
-                    <button type="button" className="text-accent" onClick={() => void view(row.id)}>
+                    <button type="button" className="underline decoration-line underline-offset-4" onClick={() => void view(row.id)}>
                       View
                     </button>
-                    <button type="button" className="text-slate-300" onClick={() => void report(row.id)}>
+                    <button type="button" className="underline decoration-line underline-offset-4" onClick={() => void report(row.id)}>
                       Report
                     </button>
-                    <button type="button" className="text-rose-300" onClick={() => void remove(row.id)}>
+                    <button type="button" className="text-signal underline decoration-signal/40 underline-offset-4" onClick={() => void remove(row.id)}>
                       Delete
                     </button>
                   </td>
@@ -127,8 +127,8 @@ export function History() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-6 text-slate-500">
-                    No analyses stored yet. History is optional and local.
+                  <td colSpan={7} className="py-6 text-muted">
+                    No analyses stored yet.
                   </td>
                 </tr>
               )}

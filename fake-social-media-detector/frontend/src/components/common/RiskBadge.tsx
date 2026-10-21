@@ -1,18 +1,19 @@
 export function riskTone(level: string) {
   const value = level.toLowerCase();
-  if (value.includes("inauthentic") || value.includes("very high") || value === "high risk")
-    return "bg-rose-500/15 text-rose-300 border-rose-400/30";
-  if (value.includes("high risk") || value.includes("high_risk")) return "bg-rose-500/15 text-rose-300 border-rose-400/30";
-  if (value.includes("suspicious") || value.includes("moderate")) return "bg-orange-500/15 text-orange-200 border-orange-400/30";
-  if (value.includes("mostly") || value.includes("low")) return "bg-amber-400/15 text-amber-200 border-amber-300/30";
-  if (value.includes("insufficient")) return "bg-slate-500/15 text-slate-200 border-white/10";
-  if (value.includes("genuine") || value.includes("minimal")) return "bg-emerald-400/15 text-emerald-200 border-emerald-300/30";
-  return "bg-slate-500/15 text-slate-200 border-white/10";
+  if (value.includes("inauthentic") || value.includes("very high") || value.includes("high"))
+    return "border-signal/30 bg-signal/5 text-signal";
+  if (value.includes("suspicious") || value.includes("moderate"))
+    return "border-caution/30 bg-caution/5 text-caution";
+  if (value.includes("mostly") || value.includes("low"))
+    return "border-caution/30 bg-caution/5 text-caution";
+  if (value.includes("genuine") || value.includes("minimal"))
+    return "border-verified/30 bg-verified/5 text-verified";
+  return "border-line bg-paper text-muted";
 }
 
 export function RiskBadge({ level }: { level: string }) {
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${riskTone(level)}`}>
+    <span className={`inline-flex border px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.12em] ${riskTone(level)}`}>
       {level}
     </span>
   );

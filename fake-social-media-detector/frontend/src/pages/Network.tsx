@@ -28,35 +28,35 @@ export function Network() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl">Network & clusters</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Prototype social graph generated from bundled samples — not live Instagram/X data.
+        <h1 className="font-display text-4xl tracking-tight">Network</h1>
+        <p className="mt-2 max-w-prose text-sm text-muted">
+          A graph of the bundled samples. It is not a live map of Instagram or X.
         </p>
       </div>
       <ErrorBanner message={error} />
       <GlassCard title="Local sample neighborhood">
-        <svg viewBox="0 0 720 360" className="h-[360px] w-full">
+        <svg viewBox="0 0 860 440" className="h-auto w-full" role="img" aria-label="Bundled sample accounts arranged in a circle">
           {(data?.edges || []).map((edge) => {
             const a = layout[edge.source];
             const b = layout[edge.target];
             if (!a || !b) return null;
-            return <line key={`${edge.source}-${edge.target}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(62,224,197,0.28)" />;
+            return <line key={`${edge.source}-${edge.target}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#d9d1c4" />;
           })}
           {(data?.nodes || []).map((node) => {
             const point = layout[node.id];
             if (!point) return null;
-            const color = node.risk >= 70 ? "#ff4d6d" : node.risk >= 45 ? "#f5c14a" : "#3ee0c5";
+            const color = node.risk >= 70 ? "#9f2d1f" : node.risk >= 45 ? "#8a5a00" : "#245c3a";
             return (
               <g key={node.id}>
-                <circle cx={point.x} cy={point.y} r={18} fill={color} fillOpacity={0.9} />
-                <text x={point.x} y={point.y + 32} textAnchor="middle" fill="#cbd5e1" fontSize="11">
+                <circle cx={point.x} cy={point.y} r={16} fill={color} stroke="#fbf9f5" strokeWidth="2" />
+                <text x={point.lx} y={point.ly} textAnchor={point.anchor} fill="#3f3a36" fontSize="11">
                   {node.label}
                 </text>
               </g>
             );
           })}
         </svg>
-        <p className="mt-2 text-xs text-slate-500">{data?.prototype_note}</p>
+        <p className="mt-2 text-xs text-muted">{data?.prototype_note}</p>
       </GlassCard>
       {(data?.clusters || []).map((cluster) => (
         <GlassCard key={cluster.title} title="Bot / suspicious cluster detection">
@@ -64,9 +64,9 @@ export function Network() {
             <p className="font-display text-xl">{cluster.title}</p>
             <RiskBadge level={`${cluster.risk}% risk`} />
           </div>
-          <p className="mt-2 text-sm text-slate-300">Cluster size: {cluster.size}</p>
-          <p className="mt-2 text-sm text-slate-400">{cluster.explanation}</p>
-          <p className="mt-3 text-sm text-slate-300">Members: {cluster.members.map((item) => `@${item}`).join(", ")}</p>
+          <p className="mt-2 text-sm text-ink-soft">Cluster size: {cluster.size}</p>
+          <p className="mt-2 text-sm text-muted">{cluster.explanation}</p>
+          <p className="mt-3 text-sm text-ink-soft">Members: {cluster.members.map((item) => `@${item}`).join(", ")}</p>
         </GlassCard>
       ))}
     </div>
@@ -74,13 +74,25 @@ export function Network() {
 }
 
 function positionNodes(nodes: { id: string }[]) {
-  const map: Record<string, { x: number; y: number }> = {};
-  const cx = 360;
-  const cy = 170;
-  const radius = 120;
+  const map: Record<string, { x: number; y: number; lx: number; ly: number; anchor: "start" | "middle" | "end" }> = {};
+  const cx = 430;
+  const cy = 210;
+  const rx = 250;
+  const ry = 145;
   nodes.forEach((node, index) => {
-    const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
-    map[node.id] = { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+    const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + rx * Math.cos(angle);
+    const y = cy + ry * Math.sin(angle);
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const anchor = cos > 0.35 ? "start" : cos < -0.35 ? "end" : "middle";
+    map[node.id] = {
+      x,
+      y,
+      lx: x + (anchor === "start" ? 18 : anchor === "end" ? -18 : 0),
+      ly: y + (sin >= 0.35 ? 28 : sin <= -0.35 ? -16 : 4),
+      anchor,
+    };
   });
   return map;
 }

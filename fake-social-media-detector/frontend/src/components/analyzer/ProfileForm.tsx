@@ -51,7 +51,7 @@ export function ProfileForm({
             key={sample.id}
             type="button"
             onClick={() => onPickSample(sample.id)}
-            className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-200 hover:border-accent/40 hover:text-accent"
+            className="border border-line px-2.5 py-1 text-xs text-ink hover:bg-white"
           >
             {sample.label}
           </button>
@@ -146,7 +146,7 @@ export function ProfileForm({
       <button
         type="submit"
         disabled={busy || !value.username.trim()}
-        className="w-full rounded-2xl bg-accent px-4 py-3 font-display text-sm font-semibold text-ink-950 disabled:opacity-50"
+        className="btn w-full sm:w-auto"
       >
         Analyze Account
       </button>
@@ -157,7 +157,7 @@ export function ProfileForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5 text-sm">
-      <span className="text-slate-400">{label}</span>
+      <span className="text-muted">{label}</span>
       {children}
     </label>
   );

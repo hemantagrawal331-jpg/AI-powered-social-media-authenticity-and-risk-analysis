@@ -1,39 +1,45 @@
 import type { ReactNode } from "react";
 import {
+  Bar,
+  BarChart,
   Cell,
   Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
   Radar,
   RadarChart,
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  LineChart,
-  Line,
 } from "recharts";
+import { useMotion } from "../../hooks/useMotion";
 import type { AnalysisResult } from "../../types/analysis";
 
 const tooltipStyle = {
-  background: "#111a2e",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 12,
+  background: "#fbf9f5",
+  border: "1px solid #e3dcd0",
+  borderRadius: 0,
+  color: "#1c1917",
+  fontSize: 12,
 };
 
+const tick = { fill: "#6f6860", fontSize: 11 };
+
 export function DashboardCharts({ result }: { result: AnalysisResult }) {
+  const motion = useMotion();
   const domainRadar = Object.entries(result.domain_scores || {}).map(([name, card]) => ({
     label: name.replaceAll("_", " "),
     value: card.score,
   }));
   const donut = [
     { name: "Inauthenticity risk", value: result.fake_probability },
-    { name: "Authenticity residual", value: Math.max(0, 100 - result.fake_probability) },
+    { name: "Residual", value: Math.max(0, 100 - result.fake_probability) },
   ];
   const bars = result.score_contributions.map((item) => ({
     name: item.feature.replace(" Risk", "").replace(" Anomaly", "").replace(" Patterns", "").replace(" Signal", ""),
@@ -42,23 +48,24 @@ export function DashboardCharts({ result }: { result: AnalysisResult }) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <ChartCard title="Domain authenticity radar">
+      <ChartCard title="Domain authenticity">
+        <p className="mb-2 text-xs text-muted">Higher means the domain looks more consistent with a genuine account.</p>
         <ResponsiveContainer width="100%" height={280}>
           <RadarChart data={domainRadar.length ? domainRadar : result.radar}>
-            <PolarGrid stroke="rgba(255,255,255,0.08)" />
-            <PolarAngleAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <PolarGrid stroke="#e3dcd0" />
+            <PolarAngleAxis dataKey="label" tick={tick} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-            <Radar dataKey="value" stroke="#3ee0c5" fill="#3ee0c5" fillOpacity={0.28} />
+            <Radar dataKey="value" stroke="#1c1917" fill="#1c1917" fillOpacity={0.12} isAnimationActive={motion} />
           </RadarChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="Fake vs residual genuine">
+      <ChartCard title="Risk and residual">
         <ResponsiveContainer width="100%" height={280}>
           <PieChart>
-            <Pie data={donut} dataKey="value" innerRadius={68} outerRadius={96} paddingAngle={3}>
-              <Cell fill="#ff4d6d" />
-              <Cell fill="#3ee0c5" />
+            <Pie data={donut} dataKey="value" innerRadius={68} outerRadius={96} paddingAngle={2} isAnimationActive={motion}>
+              <Cell fill="#9f2d1f" />
+              <Cell fill="#245c3a" />
             </Pie>
             <Legend />
             <Tooltip contentStyle={tooltipStyle} />
@@ -66,26 +73,26 @@ export function DashboardCharts({ result }: { result: AnalysisResult }) {
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="Risk contribution by feature">
+      <ChartCard title="Contribution by feature">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={bars}>
-            <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 10 }} interval={0} angle={-18} textAnchor="end" height={60} />
-            <YAxis domain={[0, 100]} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <XAxis dataKey="name" tick={tick} interval={0} angle={-18} textAnchor="end" height={64} />
+            <YAxis domain={[0, 100]} tick={tick} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="value" fill="#4f8cff" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill="#1c1917" isAnimationActive={motion} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="Followers vs likes / comments">
+      <ChartCard title="Followers, likes, comments">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={result.engagement_series}>
-            <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 10 }} />
-            <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <XAxis dataKey="date" tick={tick} />
+            <YAxis tick={tick} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="followers" stroke="#94a3b8" dot={false} />
-            <Line type="monotone" dataKey="likes" stroke="#3ee0c5" dot={false} />
-            <Line type="monotone" dataKey="comments" stroke="#f5c14a" dot={false} />
+            <Line type="monotone" dataKey="followers" stroke="#a39c93" dot={false} isAnimationActive={motion} />
+            <Line type="monotone" dataKey="likes" stroke="#1c1917" dot={false} isAnimationActive={motion} />
+            <Line type="monotone" dataKey="comments" stroke="#8a5a00" dot={false} isAnimationActive={motion} />
           </LineChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -95,9 +102,9 @@ export function DashboardCharts({ result }: { result: AnalysisResult }) {
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="glass rounded-3xl p-5">
-      <h3 className="mb-3 font-display text-sm font-semibold">{title}</h3>
+    <section className="border border-line bg-paper-raised p-5">
+      <h2 className="mb-3 font-display text-xl tracking-tight">{title}</h2>
       {children}
-    </div>
+    </section>
   );
 }

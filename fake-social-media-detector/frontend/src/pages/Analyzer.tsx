@@ -108,16 +108,17 @@ export function Analyzer() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-display text-3xl">Analyzer</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Enter profile signals manually, load a sample, upload JSON, or fetch a public page.
-          FakeGuard never asks for passwords or platform login.
+        <h1 className="font-display text-4xl tracking-tight">Analyzer</h1>
+        <p className="mt-2 max-w-prose text-sm leading-6 text-muted">
+          Paste a public profile URL, type the fields you know, load a bundled sample, or upload JSON.
+          Supported inputs are a profile link, a username plus optional counts and text, a JSON profile,
+          and an optional image. No password, and no platform login.
         </p>
       </div>
       <ErrorBanner message={error} />
       <GlassCard>
-        <p className="text-sm text-slate-300">
-          Paste a public profile link. TinyFish reads the page anyone can see and fills the form. It does not log in.
+        <p className="text-sm leading-6 text-ink-soft">
+          Public page fetch reads a page anyone can open and fills the form. It does not log in, and it does not score the account by itself.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
@@ -130,17 +131,17 @@ export function Analyzer() {
             type="button"
             disabled={fetching || busy || !fetchUrl.trim() || tinyfishReady === false}
             onClick={() => void fetchPublic()}
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950 disabled:opacity-50"
+            className="btn"
           >
             {fetching ? "Reading public page…" : "Fetch public profile"}
           </button>
         </div>
         {tinyfishReady === false && (
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-muted">
             Public page fetch is off on this server. Add TINYFISH_API_KEY in the host environment, or type the profile below.
           </p>
         )}
-        {fetchNote && <p className="mt-3 text-sm text-slate-400">{fetchNote}</p>}
+        {fetchNote && <p className="mt-3 text-sm text-muted">{fetchNote}</p>}
       </GlassCard>
       <GlassCard>
         <ProfileForm

@@ -1,6 +1,5 @@
 import { BrainCircuit } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
 import { api } from "../services/api";
@@ -31,11 +30,11 @@ export function ModelLab() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="flex items-center gap-2 text-xs uppercase tracking-[0.28em] text-accent">
-          <BrainCircuit className="h-4 w-4" /> Model lab
+        <p className="kicker flex items-center gap-2">
+          <BrainCircuit className="h-3.5 w-3.5" /> Model lab
         </p>
-        <h1 className="mt-2 font-display text-3xl">Training data, validation, history, APIs</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-400">
+        <h1 className="mt-2 font-display text-4xl tracking-tight">What the model was measured on</h1>
+        <p className="mt-2 max-w-3xl text-sm text-muted">
           Holdout metrics are from overlapping synthetic archetypes (not live Instagram). Sophisticated
           bots were held out of training — that adversarial AUC is expected to be weak. Public page
           fetch runs from Analyzer when TinyFish is configured. It does not log in.
@@ -53,30 +52,23 @@ export function ModelLab() {
         <Stat label="Adv. content AUC" value={pct(data?.adversarial_content_only_auc)} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <GlassCard title="Confusion matrix (test set)">
-          <p className="text-sm text-slate-400">
+        <GlassCard title="Confusion matrix (test set)" className="lg:col-span-2">
+          <p className="text-sm text-muted">
             Trained on {String(data?.training_rows ?? "—")} rows · tested on {String(data?.test_rows ?? "—")}
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-center">
+          <div className="mt-4 grid max-w-3xl grid-cols-2 gap-3 text-center">
             <Cell title="True genuine" value={matrix.tn} />
             <Cell title="False alarm" value={matrix.fp} />
             <Cell title="Missed fake" value={matrix.fn} />
             <Cell title="True fake" value={matrix.tp} />
           </div>
         </GlassCard>
-        <GlassCard title="What the forest uses most">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={importances} layout="vertical">
-              <XAxis type="number" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={140} tick={{ fill: "#94a3b8", fontSize: 10 }} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#3ee0c5" radius={[0, 8, 8, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <GlassCard title="What the forest uses most" className="lg:col-span-2">
+          <ImportanceList rows={importances} />
         </GlassCard>
       </div>
       <GlassCard title="Platform APIs">
-        <p className="text-sm leading-6 text-slate-300">
+        <p className="text-sm leading-6 text-ink-soft">
           Paste an Instagram/X URL. FakeGuard will parse the username. It will not scrape the live
           profile.
         </p>
@@ -84,20 +76,20 @@ export function ModelLab() {
           <input value={url} onChange={(e) => setUrl(e.target.value)} className="input max-w-xl" />
           <button
             type="button"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950"
+            className="btn"
             onClick={() => void api.ingestUrl(url).then(setIngest).catch((err: Error) => setError(err.message))}
           >
             Parse URL
           </button>
         </div>
-        {ingest && <p className="mt-3 text-sm text-slate-300">{String(ingest.detail || "")}</p>}
+        {ingest && <p className="mt-3 text-sm text-ink-soft">{String(ingest.detail || "")}</p>}
       </GlassCard>
       <GlassCard title="Continuous validation (analyst labels)">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted">
           After an analysis, mark it genuine or fake on the results page. Stored labels:{" "}
           {JSON.stringify(feedback?.counts || {})}
         </p>
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-400">
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">
           {((data?.notes as string[]) || []).map((note) => (
             <li key={note}>{note}</li>
           ))}
@@ -117,10 +109,28 @@ function num(value: unknown) {
   return String(Math.round(value * 1000) / 1000);
 }
 
+function ImportanceList({ rows }: { rows: { name: string; value: number }[] }) {
+  const max = Math.max(...rows.map((row) => row.value), 0.001);
+  if (!rows.length) return <p className="text-sm text-muted">Importances appear after the model file loads.</p>;
+  return (
+    <ul className="space-y-2">
+      {rows.map((row) => (
+        <li key={row.name} className="grid items-center gap-3 sm:grid-cols-[minmax(12rem,18rem)_1fr_4rem]">
+          <span className="text-sm">{row.name}</span>
+          <span className="h-1 bg-line">
+            <span className="block h-1 bg-ink" style={{ width: `${(row.value / max) * 100}%` }} />
+          </span>
+          <span className="font-mono text-xs text-muted">{row.value.toFixed(3)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass rounded-3xl p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
+    <div className="border border-line bg-paper-raised p-4">
+      <p className="text-xs uppercase tracking-[0.2em] text-muted">{label}</p>
       <p className="mt-2 font-display text-2xl">{value}</p>
     </div>
   );
@@ -128,8 +138,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function Cell({ title, value }: { title: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white/5 p-4">
-      <p className="text-xs text-slate-500">{title}</p>
+    <div className="border border-line bg-paper p-4">
+      <p className="text-xs text-muted">{title}</p>
       <p className="mt-1 font-display text-2xl">{value}</p>
     </div>
   );

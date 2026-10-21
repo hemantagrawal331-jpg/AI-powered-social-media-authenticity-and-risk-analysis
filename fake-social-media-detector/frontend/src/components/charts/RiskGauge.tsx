@@ -1,34 +1,23 @@
 export function RiskGauge({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(100, value));
-  const angle = (clamped / 100) * 180;
-  const color = clamped >= 71 ? "#ff4d6d" : clamped >= 51 ? "#f5c14a" : "#3ee0c5";
+  const color = clamped >= 71 ? "#9f2d1f" : clamped >= 45 ? "#8a5a00" : "#245c3a";
 
   return (
-    <div className="relative mx-auto w-64">
-      <svg viewBox="0 0 200 120" className="w-full">
-        <path d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="16" strokeLinecap="round" />
+    <div className="mx-auto w-full max-w-[16rem]">
+      <svg viewBox="0 0 200 120" className="w-full" role="img" aria-label={`Inauthenticity risk ${Math.round(clamped)} percent`}>
+        <path d="M20 110 A80 80 0 0 1 180 110" fill="none" stroke="#e3dcd0" strokeWidth="10" />
         <path
           d="M20 110 A80 80 0 0 1 180 110"
           fill="none"
           stroke={color}
-          strokeWidth="16"
-          strokeLinecap="round"
+          strokeWidth="10"
           strokeDasharray={`${(clamped / 100) * 251} 251`}
           className="transition-all duration-700"
         />
-        <line
-          x1="100"
-          y1="110"
-          x2={100 + 62 * Math.cos(((180 - angle) * Math.PI) / 180)}
-          y2={110 - 62 * Math.sin(((180 - angle) * Math.PI) / 180)}
-          stroke="white"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
       </svg>
-      <div className="absolute inset-x-0 bottom-1 text-center">
-        <p className="font-display text-4xl font-bold">{Math.round(clamped)}%</p>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Inauthenticity risk</p>
+      <div className="-mt-8 text-center">
+        <p className="font-display text-5xl leading-none">{Math.round(clamped)}%</p>
+        <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted">Inauthenticity risk</p>
       </div>
     </div>
   );

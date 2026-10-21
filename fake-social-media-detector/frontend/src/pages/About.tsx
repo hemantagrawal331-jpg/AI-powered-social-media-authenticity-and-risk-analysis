@@ -1,42 +1,52 @@
-import { GlassCard } from "../components/common/GlassCard";
-
 export function About() {
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl">About FakeGuard AI</h1>
-      <GlassCard title="Problem">
-        <p className="text-sm leading-6 text-slate-300">
-          Fake social media accounts are used for scams, spam, impersonation, fake promotions, bot
-          networks, phishing, misinformation, and fraud. People usually see only a username, a bio,
-          and a follower count — not enough to judge trustworthiness.
+    <article className="max-w-3xl">
+      <h1 className="font-display text-4xl tracking-tight sm:text-5xl">A desk for reading accounts, not a verdict machine.</h1>
+      <p className="mt-6 text-base leading-7 text-ink-soft">
+        Fake social accounts are used for scams, spam, impersonation, fake promotions, bot activity,
+        phishing, and fraud. A person usually sees a username, a bio, and a follower count. FakeGuard
+        is a place to put those observations next to a model and see which parts of the story the
+        numbers actually support.
+      </p>
+
+      <section className="mt-12 border-t border-line pt-6">
+        <h2 className="font-display text-3xl">What it estimates</h2>
+        <p className="mt-4 text-sm leading-7 text-ink-soft">
+          Authenticity, inauthenticity risk, confidence, evidence sufficiency, and uncertainty — from
+          fields you type, a file you upload, a bundled sample, or a public page the server was asked
+          to read. Missing data lowers confidence and drops that domain’s weight. It is never treated
+          as proof of fraud.
         </p>
-      </GlassCard>
-      <GlassCard title="Solution">
-        <p className="text-sm leading-6 text-slate-300">
-          FakeGuard is a multimodal authenticity intelligence system. It estimates authenticity
-          probability, inauthenticity risk, model confidence, evidence sufficiency, and uncertainty
-          from voluntarily supplied fields. Missing data lowers confidence and drops domain weights
-          — it is never treated as proof of fraud.
+      </section>
+
+      <section className="mt-10 border-t border-line pt-6">
+        <h2 className="font-display text-3xl">How it is built</h2>
+        <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
+          {[
+            ["Interface", "React, Vite, TypeScript, Tailwind, Recharts."],
+            ["Server", "FastAPI, Pydantic, SQLite, Pillow, ReportLab."],
+            ["Model", "Calibrated random forest, histogram gradient boosting, logistic regression, isolation forest."],
+            ["Fusion", "Evidence-weighted log-odds across identity, profile, engagement, time, content, network, language, and coordination."],
+            ["Calibration", "Platt stacking, with isotonic as a fallback. ECE and Brier are in Model lab."],
+            ["Out of distribution", "Isolation forest, centroid distance, and the pattern of missing features."],
+          ].map(([term, detail]) => (
+            <div key={term} className="grid gap-1 py-3 sm:grid-cols-[11rem_1fr]">
+              <dt className="text-muted">{term}</dt>
+              <dd>{detail}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="mt-10 border-t border-line pt-6">
+        <h2 className="font-display text-3xl">Limits you should keep in view</h2>
+        <p className="mt-4 text-sm leading-7 text-ink-soft">
+          Training uses overlapping synthetic archetypes, not a live dump from any network. Official
+          platform APIs are not connected. A photo does not prove identity. A fluent bio can fool a
+          content-only check, so those checks are discounted. The metrics in Model lab are measured
+          on synthetic holdout data. They are not a claim about accuracy on live Instagram or X.
         </p>
-      </GlassCard>
-      <GlassCard title="Technology">
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">
-          <li>Frontend: React, Vite, TypeScript, Tailwind CSS, Recharts, Lucide</li>
-          <li>Backend: FastAPI, Pydantic, SQLAlchemy / SQLite, Pillow, ReportLab</li>
-          <li>Ensemble: calibrated Random Forest + histogram gradient boosting + logistic + isolation forest</li>
-          <li>Fusion: evidence-weighted log-odds with identity, profile, engagement, temporal, content, network, language, and coordination domains</li>
-          <li>Calibration: Platt stacking (isotonic fallback), ECE and Brier reported in Model Lab</li>
-          <li>OOD: isolation forest + centroid distance + missing-feature pattern</li>
-        </ul>
-      </GlassCard>
-      <GlassCard title="Limitations">
-        <p className="text-sm leading-6 text-slate-300">
-          Training uses overlapping synthetic archetypes, not live Instagram dumps. Official platform
-          APIs are not connected. A photo does not prove identity. LLM-written bios can fool
-          content-only checks; those checks are discounted. Open Model Lab and MODEL_CARD.md for
-          measured synthetic metrics — they are not live-platform accuracy.
-        </p>
-      </GlassCard>
-    </div>
+      </section>
+    </article>
   );
 }

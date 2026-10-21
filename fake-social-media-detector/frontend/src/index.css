@@ -3,7 +3,10 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --paper: #f3efe6;
+  --ink: #1c1917;
+  --line: #e3dcd0;
 }
 
 html,
@@ -14,29 +17,79 @@ body,
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(62, 224, 197, 0.08), transparent 50%),
-    radial-gradient(900px 500px at 100% 0%, rgba(79, 140, 255, 0.08), transparent 45%),
-    #070b14;
-  color: #e7eefc;
+  background: var(--paper);
+  color: var(--ink);
+  font-feature-settings: "ss01" on, "cv11" on;
+}
+
+::selection {
+  background: #e7d7c3;
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1a2744 transparent;
+  scrollbar-color: #cfc6b8 transparent;
+}
+
+.font-mono,
+table {
+  font-variant-numeric: tabular-nums;
 }
 
 .glass {
-  background: linear-gradient(180deg, rgba(17, 26, 46, 0.78), rgba(11, 18, 32, 0.66));
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(16px);
+  background: #fbf9f5;
+  border: 1px solid var(--line);
+  box-shadow: none;
 }
 
-.risk-bar {
-  background: linear-gradient(90deg, #3ee0c5, #f5c14a, #f07167, #ff4d6d);
+.kicker {
+  @apply text-[11px] font-medium uppercase tracking-[0.16em] text-muted;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center bg-ink px-4 py-2.5 text-sm font-medium text-paper-raised transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center border border-line bg-transparent px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-paper-raised disabled:cursor-not-allowed disabled:opacity-40;
 }
 
 .input {
-  @apply w-full rounded-xl border border-white/10 bg-ink-950/70 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-accent/50;
+  @apply w-full border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted focus:border-ink;
+}
+
+.rise {
+  animation: rise 0.45s ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

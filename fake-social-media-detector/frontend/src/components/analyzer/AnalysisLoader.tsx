@@ -1,49 +1,30 @@
-import { useEffect, useState } from "react";
-import { Check, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
-const STEPS = [
-  "Extracting profile signals",
-  "Analyzing behavioral patterns",
-  "Detecting statistical anomalies",
-  "Evaluating engagement vs cohort",
-  "Running probabilistic fusion",
-  "Calibrating prediction",
-  "Generating explanation",
+const STAGES = [
+  "Feature extraction across identity, profile, engagement, time, content, and network",
+  "Calibrated ensemble: forest, boosting, logistic baseline, isolation forest",
+  "Evidence-weighted fusion, then a written explanation",
 ];
 
 export function AnalysisLoader() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setStep((current) => (current < STEPS.length - 1 ? current + 1 : current));
-    }, 420);
-    return () => window.clearInterval(timer);
-  }, []);
-
   return (
-    <div className="glass mx-auto max-w-xl rounded-3xl p-8">
-      <p className="font-display text-xl">Running authenticity intelligence</p>
-      <p className="mt-1 text-sm text-slate-400">
-        Ensemble + evidence fusion on supplied fields only. No live platform call. Missing data lowers
-        confidence, not risk.
+    <div className="max-w-xl border border-line bg-paper-raised p-6 sm:p-8" role="status" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <LoaderCircle className="h-4 w-4 animate-spin" />
+        <p className="font-display text-2xl">Scoring the fields you submitted</p>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-muted">
+        The server is running the model now. The list below is the pipeline. Individual stages are
+        not reported back separately, so this is not a live scan.
       </p>
-      <ul className="mt-6 space-y-3">
-        {STEPS.map((label, index) => {
-          const done = index < step;
-          const active = index === step;
-          return (
-            <li key={label} className="flex items-center gap-3 text-sm">
-              {done ? (
-                <Check className="h-4 w-4 text-accent" />
-              ) : (
-                <LoaderCircle className={`h-4 w-4 ${active ? "animate-spin text-accent" : "text-slate-600"}`} />
-              )}
-              <span className={done || active ? "text-slate-100" : "text-slate-500"}>{label}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <ol className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
+        {STAGES.map((label, index) => (
+          <li key={label} className="grid grid-cols-[2rem_1fr] gap-2">
+            <span className="font-mono text-xs text-muted">0{index + 1}</span>
+            <span>{label}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

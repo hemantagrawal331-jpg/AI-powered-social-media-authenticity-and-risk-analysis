@@ -1,28 +1,36 @@
-import {
-  Bot,
-  Fingerprint,
-  Megaphone,
-  Network,
-  ShieldAlert,
-  Siren,
-  Users,
-  Wallet,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { GlassCard } from "../components/common/GlassCard";
-import { api, persistResult } from "../services/api";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ErrorBanner } from "../components/common/ErrorBanner";
+import { RiskBadge } from "../components/common/RiskBadge";
+import { api, persistResult } from "../services/api";
 
-const insights = [
-  { title: "Fake Identity", copy: "Accounts pretending to be real people with thin history.", icon: Fingerprint },
-  { title: "Bot Networks", copy: "Automated accounts operating in coordinated clusters.", icon: Bot },
-  { title: "Scam Accounts", copy: "Profiles promoting fraudulent money or crypto offers.", icon: Wallet },
-  { title: "Impersonation", copy: "Lookalikes of people or brands used to steal trust.", icon: ShieldAlert },
-  { title: "Spam", copy: "Repetitive promotional or irrelevant content at scale.", icon: Megaphone },
-  { title: "Engagement Manipulation", copy: "Artificial likes, followers, and comments.", icon: Users },
-  { title: "Phishing", copy: "Accounts that redirect people to suspicious links.", icon: Siren },
-  { title: "Coordinated Campaigns", copy: "Many accounts repeating the same narrative or offer.", icon: Network },
+const concerns = [
+  ["Fake identity", "A profile that presents as a real person with almost no history behind it."],
+  ["Impersonation", "A lookalike of a person or brand, used to borrow trust."],
+  ["Scam offers", "Giveaways, investment pitches, or payment requests that do not match the account."],
+  ["Phishing", "A profile whose job is to move someone to a suspicious link."],
+  ["Bots", "Posting and engagement that look scheduled rather than personal."],
+  ["Coordination", "Several accounts repeating the same offer or narrative."],
+  ["Spam", "The same promotional text, posted again and again."],
+  ["Engagement games", "Follower or like counts that do not match the visible activity."],
+];
+
+const findings = [
+  {
+    label: "Observed",
+    title: "Account is 18 days old",
+    detail: "The bundled profile reports 25,400 followers and 45 posts in that window.",
+  },
+  {
+    label: "Observed",
+    title: "Bio asks for a payment",
+    detail: "“Send 0.1 ETH get 2 ETH back.” That is the text in the sample, not a live page.",
+  },
+  {
+    label: "Interpretation",
+    title: "Engagement does not match the audience",
+    detail: "Average likes are 80. The model treats that gap as a risk signal, not as proof.",
+  },
 ];
 
 export function Home() {
@@ -39,89 +47,144 @@ export function Home() {
       persistResult(result);
       navigate("/results");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Demo failed");
+      setError(err instanceof Error ? err.message : "The sample investigation did not run.");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="space-y-8">
-      <section className="glass overflow-hidden rounded-[32px] px-6 py-10 sm:px-10">
-        <p className="text-xs uppercase tracking-[0.28em] text-accent">FakeGuard AI · system status live</p>
-        <h1 className="mt-3 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl">
-          Social account intelligence
-        </h1>
-        <p className="mt-4 max-w-2xl text-slate-300">
-          Analyze observable signals without platform login. FakeGuard estimates authenticity
-          probability, inauthenticity risk, model confidence, evidence sufficiency, and uncertainty
-          from the fields you supply.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void runSample("scam-giveaway")}
-            className="rounded-2xl bg-accent px-5 py-3 font-display text-sm font-semibold text-ink-950"
-          >
-            Launch Demo
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void runSample("genuine-personal")}
-            className="rounded-2xl border border-white/10 px-5 py-3 text-sm"
-          >
-            Try Genuine Account
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void runSample("fake-bot")}
-            className="rounded-2xl border border-white/10 px-5 py-3 text-sm"
-          >
-            Try Suspicious Account
-          </button>
-          <button type="button" onClick={() => navigate("/analyze")} className="rounded-2xl bg-white/10 px-5 py-3 text-sm">
-            Analyze Account
-          </button>
+    <div className="space-y-20">
+      <section className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <div className="lg:pt-4">
+          <p className="kicker">Investigative desk</p>
+          <h1 className="mt-4 max-w-[12ch] font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl">
+            See what the signal is hiding.
+          </h1>
+          <p className="mt-6 max-w-prose text-base leading-7 text-ink-soft">
+            Investigate suspicious social content, understand account credibility, and explore risk
+            signals with evidence you can examine.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button type="button" className="btn" onClick={() => navigate("/analyze")}>
+              Analyze a post
+            </button>
+            <button type="button" className="btn-ghost" disabled={busy} onClick={() => void runSample("scam-giveaway")}>
+              {busy ? "Scoring sample…" : "Explore a sample investigation"}
+            </button>
+          </div>
+          <p className="mt-4 text-sm text-muted">
+            <button type="button" className="underline decoration-line underline-offset-4 hover:text-ink" disabled={busy} onClick={() => void runSample("genuine-personal")}>
+              Lower-risk personal sample
+            </button>
+            <span className="px-2">/</span>
+            <button type="button" className="underline decoration-line underline-offset-4 hover:text-ink" disabled={busy} onClick={() => void runSample("fake-bot")}>
+              Bundled bot sample
+            </button>
+          </p>
+          <ErrorBanner message={error} />
         </div>
-        <ErrorBanner message={error} />
+
+        <figure className="border border-line bg-paper-raised">
+          <figcaption className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+            <span className="kicker">Demonstration</span>
+            <span className="text-[11px] text-muted">Bundled sample · not a live read</span>
+          </figcaption>
+          <div className="grid gap-0 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="border-b border-line p-4 md:border-b-0 md:border-r">
+              <p className="font-mono text-xs text-muted">@crypto_giveaway_9283 · X</p>
+              <p className="mt-3 font-display text-2xl leading-tight">Official Crypto Giveaway</p>
+              <p className="mt-3 text-sm leading-6 text-ink-soft">
+                FREE BITCOIN GIVEAWAY! Send 0.1 ETH get 2 ETH back! Official Elon giveaway. Act now!!!
+                Click the link
+              </p>
+              <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-sm">
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted">Age</dt>
+                  <dd className="mt-1 font-mono">18d</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted">Followers</dt>
+                  <dd className="mt-1 font-mono">25,400</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted">Avg likes</dt>
+                  <dd className="mt-1 font-mono">80</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="p-4">
+              <p className="kicker">Sample reading</p>
+              <p className="mt-2 font-display text-5xl leading-none">67</p>
+              <p className="mt-1 text-xs text-muted">Illustrative inauthenticity risk, 0–100. Run the sample for the model’s number.</p>
+              <div className="mt-3">
+                <RiskBadge level="High risk" />
+              </div>
+              <ol className="mt-5 space-y-3">
+                {findings.map((item) => (
+                  <li key={item.title} className="border-t border-line pt-3">
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-muted">{item.label}</p>
+                    <p className="mt-1 text-sm font-medium">{item.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted">{item.detail}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </figure>
       </section>
 
       <section>
-        <h2 className="mb-4 font-display text-2xl">Problem insights</h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {insights.map(({ title, copy, icon: Icon }) => (
-            <button
-              key={title}
-              type="button"
-              className="glass group rounded-3xl p-5 text-left transition hover:-translate-y-1 hover:shadow-glow"
-              onClick={() => navigate("/about")}
-            >
-              <Icon className="h-5 w-5 text-accent" />
-              <p className="mt-3 font-display font-semibold">{title}</p>
-              <p className="mt-1 text-sm text-slate-400">{copy}</p>
-            </button>
-          ))}
+        <div className="grid gap-8 border-t border-line pt-8 lg:grid-cols-[16rem_1fr]">
+          <h2 className="font-display text-3xl tracking-tight">How an investigation moves</h2>
+          <ol className="divide-y divide-line border-y border-line">
+            {[
+              ["01", "Submit something you can stand behind", "A public profile URL, a username and the fields you know, a JSON file, or one of the bundled samples. Passwords are never requested."],
+              ["02", "The model scores those fields", "Identity, profile, engagement, timing, content, and any network notes are fused. Missing fields lower confidence. They are not treated as fraud."],
+              ["03", "Read the result as evidence plus interpretation", "You get a risk level, an uncertainty range, and the observations behind them. A score is not a finding of intent."],
+              ["04", "Compare, export, or correct it", "History stores the analysis locally. You can compare two cases, download a report, or label the result for later retraining."],
+            ].map(([index, title, copy]) => (
+              <li key={index} className="grid gap-2 py-4 sm:grid-cols-[3rem_14rem_1fr] sm:gap-6">
+                <span className="font-mono text-xs text-muted">{index}</span>
+                <p className="font-medium">{title}</p>
+                <p className="text-sm leading-6 text-muted">{copy}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      <GlassCard title="How the system scores risk">
-        <p className="text-sm leading-6 text-slate-300">
-          Input is validated, features are extracted across identity, profile, engagement, temporal,
-          content, and partial network domains, then fused with a calibrated Random Forest + gradient
-          boosting + logistic baseline + isolation-forest anomaly score. Domain weights drop to zero
-          when data is missing. Content/NLP is discounted because LLM-written bios are cheap to fake.
-        </p>
-      </GlassCard>
-      <GlassCard title="Privacy">
-        <p className="text-sm leading-6 text-slate-300">
-          FakeGuard AI analyzes only information voluntarily provided to the system or otherwise
-          available through authorized sources. It does not require social media credentials and
-          does not attempt to access private account data.
-        </p>
-      </GlassCard>
+      <section className="grid gap-10 border-t border-line pt-8 lg:grid-cols-[16rem_1fr]">
+        <h2 className="font-display text-3xl tracking-tight">What people are usually trying to judge</h2>
+        <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+          {concerns.map(([title, copy]) => (
+            <div key={title} className="border-t border-line pt-3">
+              <dt className="font-medium">{title}</dt>
+              <dd className="mt-1 text-sm leading-6 text-muted">{copy}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="grid gap-10 border-t border-line pt-8 md:grid-cols-2">
+        <div>
+          <h2 className="font-display text-3xl tracking-tight">What the score is</h2>
+          <p className="mt-4 max-w-prose text-sm leading-7 text-ink-soft">
+            A calibrated mix of a random forest, gradient boosting, a logistic baseline, and an
+            isolation-forest anomaly score. Domain weights fall to zero when that domain has no
+            data. Content is discounted because a polished bio is cheap to write. Open Model lab for
+            the synthetic holdout metrics. Those numbers are not live-platform accuracy.
+          </p>
+        </div>
+        <div>
+          <h2 className="font-display text-3xl tracking-tight">What it will not do</h2>
+          <p className="mt-4 max-w-prose text-sm leading-7 text-ink-soft">
+            It will not log into Instagram, X, or any other network. A public-page fetch, when the
+            server has a key, only reads a page anyone can open and fills the form. It does not
+            decide that someone is a criminal. You still have to read the evidence.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
