@@ -161,6 +161,15 @@ export interface DatasetSummary {
   demos_included: boolean;
   durable: boolean;
   storage_note: string;
+  storage?: {
+    backend: string;
+    durable: boolean;
+    healthy: boolean;
+    mode: string;
+    last_write_at: string | null;
+    migration_status: string;
+    message: string;
+  };
   real_world_metrics: null;
 }
 

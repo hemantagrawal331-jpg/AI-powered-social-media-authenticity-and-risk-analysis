@@ -169,7 +169,17 @@ export function DatasetDesk() {
       {token && summary && (
         <>
           <GlassCard title="Store">
-            <p className="text-sm text-ink-soft">{summary.storage_note}</p>
+            <p className="text-sm text-ink-soft">{summary.storage?.message || summary.storage_note}</p>
+            {summary.storage && !summary.storage.durable && (
+              <p className="mt-2 border border-caution/40 bg-caution/10 px-3 py-2 text-sm text-ink-soft">
+                Development storage. This is not the production database, and a restart can lose rows unless DATASET_DATABASE_URL points at PostgreSQL.
+              </p>
+            )}
+            {summary.storage && (
+              <p className="mt-2 text-xs text-muted">
+                Backend {summary.storage.backend}. Health {summary.storage.healthy ? "up" : "down"}. Mode {summary.storage.mode}. Last write {summary.storage.last_write_at || "none"}. Migration {summary.storage.migration_status}.
+              </p>
+            )}
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
               <Count label="Observations" value={summary.observations} />
               <Count label="Unique accounts" value={summary.unique_accounts} />

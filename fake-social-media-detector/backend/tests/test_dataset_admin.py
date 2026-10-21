@@ -244,6 +244,9 @@ def test_server_copies_match_backend_dataset_code():
         "app/datasets/collect.py",
         "app/datasets/readiness.py",
         "app/datasets/review.py",
+        "app/datasets/gateway.py",
+        "app/datasets/sql_store.py",
+        "app/datasets/migrate.py",
         "app/api/routes/dataset.py",
         "app/main.py",
     ]

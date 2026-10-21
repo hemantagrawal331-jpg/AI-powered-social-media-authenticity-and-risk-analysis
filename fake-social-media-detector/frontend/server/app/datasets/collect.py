@@ -43,6 +43,7 @@ def dataset_paths() -> dict[str, Path]:
         "observations": root / "observations.jsonl",
         "labels": root / "labels.jsonl",
         "log": root / "collection_log.jsonl",
+        "audit": root / "audit.jsonl",
     }
 
 
@@ -56,13 +57,50 @@ def charge_calls(count: int, *, now: float) -> None:
         CALLS.append(now)
 
 
+class _JsonlTarget:
+    """Local development files. Not a production database."""
+
+    def __init__(self, paths: dict[str, Path] | None) -> None:
+        if not paths:
+            raise ValueError("No store was provided.")
+        self.paths = paths
+        self._keys = {row.get("account_key") for row in _read_jsonl(paths["observations"])}
+
+    def has_account(self, key: str) -> bool:
+        return key in self._keys
+
+    def save_observation(self, observation: dict) -> str:
+        result = append_observation(self.paths["observations"], observation)
+        if result == "stored":
+            self._keys.add(observation.get("account_key"))
+        return result
+
+    def add_results(self, results: list[dict]) -> None:
+        _append_log(self.paths["log"], results)
+        audit = self.paths.get("audit")
+        if audit:
+            _append_log(
+                audit,
+                [
+                    {
+                        "action": "collect",
+                        "input": row.get("input"),
+                        "result": row.get("result"),
+                        "public_login": row.get("public_login"),
+                    }
+                    for row in results
+                ],
+            )
+
+
 def collect_entries(
     entries: list[str],
-    paths: dict[str, Path],
+    paths: dict[str, Path] | None = None,
     *,
     confirm: bool,
     transport=None,
     now: str | None = None,
+    store=None,
 ) -> dict:
     if not confirm:
         raise ValueError("Confirm the batch before collection starts. Collection does not label an account.")
@@ -70,8 +108,7 @@ def collect_entries(
         raise ValueError("Add at least one GitHub username or profile URL.")
     if len(entries) > MAX_BATCH:
         raise ValueError(f"A batch can contain at most {MAX_BATCH} entries.")
-    observations = paths["observations"]
-    existing = {row.get("account_key") for row in _read_jsonl(observations)}
+    target = store if store is not None else _JsonlTarget(paths)
     results: list[dict] = []
     planned: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -93,7 +130,7 @@ def collect_entries(
         if stopped:
             results.append({"input": login, "result": "not_attempted", "detail": "Stopped after a GitHub rate limit. Not retried."})
             continue
-        if key in existing:
+        if target.has_account(key):
             results.append({"input": login, "result": "duplicate", "detail": "This account is already stored."})
             continue
         try:
@@ -106,9 +143,7 @@ def collect_entries(
         observation = observation_from_lookup(lookup, observed_at=now)
         if observation["features"]["posts"]["value"] is not None or observation["features"]["average_likes"]["value"] is not None:
             raise ValueError("The collector refused to store a fabricated posts or likes value.")
-        stored = append_observation(observations, observation)
-        if stored == "stored":
-            existing.add(observation["account_key"])
+        stored = target.save_observation(observation)
         results.append(
             {
                 "input": login,
@@ -118,7 +153,7 @@ def collect_entries(
                 "detail": "Stored public fields only. This is not a genuineness label.",
             }
         )
-    _append_log(paths["log"], results)
+    target.add_results(results)
     counts = _counts(results)
     return {
         "counts": counts,
@@ -240,12 +275,17 @@ def summarize(paths: dict[str, Path]) -> dict:
         "schema_versions": schemas or [SCHEMA_VERSION],
         "provenance_complete": complete,
         "demos_included": False,
-        "durable": not IS_VERCEL,
-        "storage_note": (
-            "Observations stay in the local data/real directory and are not committed."
-            if not IS_VERCEL
-            else "This host writes to temporary disk. Rows can disappear on a new instance. It is not a durable dataset."
-        ),
+        "durable": False,
+        "storage_note": "Development store. These JSONL files are not production persistence.",
+        "storage": {
+            "backend": "local_jsonl",
+            "durable": False,
+            "healthy": True,
+            "mode": "development",
+            "last_write_at": stamps[-1] if stamps else None,
+            "migration_status": "not_started",
+            "message": "Development store. These JSONL files are not production persistence.",
+        },
         "real_world_metrics": None,
     }
 

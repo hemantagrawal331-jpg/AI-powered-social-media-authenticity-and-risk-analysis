@@ -129,6 +129,32 @@ On Vercel the same routes write under temporary disk. Those rows are not a durab
 
 `GET /api/dataset/readiness` reports label coverage, account-grouped split sizes, and whether any account fell into two splits. It always returns `metrics: null`. Thirty confirmed accounts is a count milestone, not a reliability result. The 46-feature model is not trained from this desk.
 
+## Durable storage
+
+The history database is SQLite. On Vercel that file is on temporary disk, so it is not the dataset store.
+
+Real observations use `DATASET_DATABASE_URL`. A `postgres://` or `postgresql://` URL is the only store marked durable. The driver is `psycopg`. `ADMIN_TOKEN` and the database URL stay in the server environment. Neither is a `VITE_` variable.
+
+If that URL is missing on the hosted site, dataset routes return HTTP 503 and do not write to temporary disk. Local development with no URL keeps using gitignored JSONL under `data/real/`. The desk labels that mode as development storage, not production persistence.
+
+Tables, created on first connection: `dataset_observations`, `dataset_labels`, `dataset_collection_log`, `dataset_audit`. Observations and labels are separate. `account_key` is unique. A label signature of account, label type, and evidence source is unique. A confirmed label is not replaced by a different import. Missing likes and posts stay null. Writes that fail roll back.
+
+Audit rows record collect, review, export, and delete. They do not store the admin token or the database URL.
+
+Backup with `pg_dump` of those four tables. A JSONL export is a second copy. Keep both outside git.
+
+Import the current local file only after the PostgreSQL URL is set:
+
+```bash
+cd fake-social-media-detector
+PYTHONPATH=backend ./venv/bin/python3 -m app.datasets.migrate --source data/real --dry-run
+PYTHONPATH=backend ./venv/bin/python3 -m app.datasets.migrate --source data/real
+```
+
+The command reads `observations.jsonl` and `labels.jsonl`. It does not read the bundled demos. It does not modify the source files. Run it again to confirm later rows are duplicates. A rejected row, such as one that stored posts as observed, is counted and skipped.
+
+To check that a write survives a restart, save one observation, restart the app or redeploy, and open `/dataset` again. The same observation id should still be listed, and the storage line should say `postgresql` with health up. That check has not been run on the live host because `DATASET_DATABASE_URL` is not configured there.
+
 ## Known limits
 
 One public GitHub snapshot and zero confirmed labels cannot support a metric or a new model. Instagram and X are not connected. TinyFish does not pass a login wall. GitHub authenticity would not establish Instagram or X authenticity even after a future GitHub evaluation.
