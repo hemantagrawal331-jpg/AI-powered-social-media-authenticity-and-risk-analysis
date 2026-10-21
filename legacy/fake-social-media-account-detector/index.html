@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fake Account Detector</title>
+<style>
+  :root { --blue:#2563eb; --red:#dc2626; --green:#16a34a; --bg:#f8fafc; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: var(--bg); margin:0; padding:2rem; color:#1e293b; }
+  .card { max-width: 640px; margin: 0 auto; background:#fff; border-radius:12px; padding:2rem; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  h1 { font-size:1.4rem; margin-bottom:0.25rem; }
+  p.sub { color:#64748b; margin-top:0; margin-bottom:1.5rem; }
+  label { display:block; font-size:0.85rem; font-weight:600; margin:0.75rem 0 0.25rem; }
+  input[type=number] { width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px; }
+  .row { display:flex; gap:1rem; }
+  .row > div { flex:1; }
+  .checkboxes { display:flex; gap:1.5rem; margin-top:1rem; }
+  .checkboxes label { display:flex; align-items:center; gap:0.4rem; font-weight:500; }
+  button { margin-top:1.5rem; width:100%; padding:0.75rem; background:var(--blue); color:#fff; border:none; border-radius:8px; font-size:1rem; cursor:pointer; }
+  button:hover { opacity:0.9; }
+  #result { margin-top:1.5rem; padding:1rem; border-radius:8px; display:none; }
+  #result.fake { background:#fef2f2; border:1px solid var(--red); }
+  #result.genuine { background:#f0fdf4; border:1px solid var(--green); }
+  #result h2 { margin:0 0 0.5rem; }
+  #result.fake h2 { color:var(--red); }
+  #result.genuine h2 { color:var(--green); }
+  #result ul { margin:0.5rem 0 0; padding-left:1.2rem; }
+  .api-note { font-size:0.75rem; color:#94a3b8; margin-top:1rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔍 Fake Social Media Account Detector</h1>
+  <p class="sub">Enter a profile's public details to get a prediction.</p>
+
+  <form id="predictForm">
+    <div class="row">
+      <div><label>Followers</label><input type="number" id="followers" value="120" min="0" required></div>
+      <div><label>Following</label><input type="number" id="following" value="2500" min="1" required></div>
+    </div>
+    <div class="row">
+      <div><label>Posts</label><input type="number" id="posts" value="3" min="0" required></div>
+      <div><label>Account age (days)</label><input type="number" id="account_age_days" value="20" min="1" required></div>
+    </div>
+    <div class="row">
+      <div><label>Username length</label><input type="number" id="username_length" value="18" min="1" required></div>
+      <div><label>Username digit ratio (0–1)</label><input type="number" id="username_digit_ratio" value="0.4" min="0" max="1" step="0.01" required></div>
+    </div>
+    <div class="checkboxes">
+      <label><input type="checkbox" id="has_profile_pic"> Has profile picture</label>
+      <label><input type="checkbox" id="has_bio"> Has bio</label>
+      <label><input type="checkbox" id="is_verified"> Verified</label>
+    </div>
+    <button type="submit">Predict</button>
+  </form>
+
+  <div id="result"></div>
+  <p class="api-note">Calls the FastAPI backend at /predict</p>
+</div>
+
+<script>
+const API_URL = "/predict"; // relative path — works locally and once deployed
+document.getElementById("predictForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const payload = {
+    followers: Number(document.getElementById("followers").value),
+    following: Number(document.getElementById("following").value),
+    posts: Number(document.getElementById("posts").value),
+    account_age_days: Number(document.getElementById("account_age_days").value),
+    username_length: Number(document.getElementById("username_length").value),
+    username_digit_ratio: Number(document.getElementById("username_digit_ratio").value),
+    has_profile_pic: document.getElementById("has_profile_pic").checked,
+    has_bio: document.getElementById("has_bio").checked,
+    is_verified: document.getElementById("is_verified").checked,
+  };
+
+  const resultDiv = document.getElementById("result");
+  resultDiv.style.display = "block";
+  resultDiv.className = "";
+  resultDiv.innerHTML = "Predicting...";
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    resultDiv.className = data.prediction === "FAKE" ? "fake" : "genuine";
+    resultDiv.innerHTML = `
+      <h2>${data.prediction === "FAKE" ? "🔴 Likely FAKE" : "🟢 Likely GENUINE"}</h2>
+      <p><strong>Confidence:</strong> ${data.confidence_percent}%</p>
+      <p><strong>Reasons:</strong></p>
+      <ul>${data.reasons.map(r => `<li>${r}</li>`).join("")}</ul>
+    `;
+  } catch (err) {
+    resultDiv.className = "fake";
+    resultDiv.innerHTML = "<h2>Error</h2><p>Could not reach the backend. Is it running on port 8000?</p>";
+  }
+});
+</script>
+</body>
+</html>

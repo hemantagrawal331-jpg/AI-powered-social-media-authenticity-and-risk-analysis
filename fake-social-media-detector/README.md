@@ -66,6 +66,8 @@ fake-social-media-detector/
 └── README.md
 ```
 
+The earlier Smart India Hackathon prototype (single-page form, synthetic dataset, and Random Forest pickle) is preserved at `legacy/fake-social-media-account-detector/`, merged from [fake-social-media-account-detector](https://github.com/hemantagrawal331-jpg/fake-social-media-account-detector). FakeGuard above is the app to run.
+
 ---
 
 ## Installation
