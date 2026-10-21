@@ -100,6 +100,28 @@ def test_fetch_maps_public_fields_and_does_not_ask_for_login(monkeypatch: pytest
     assert result["run_id"] == "run-1"
 
 
+def test_exact_transport_keeps_api_key_header(monkeypatch: pytest.MonkeyPatch):
+    captured: dict = {}
+
+    class FakeConn:
+        def __init__(self, host: str, timeout: int = 0) -> None:
+            captured["host"] = host
+
+        def request(self, method: str, path: str, body: bytes | None = None, headers: dict | None = None) -> None:
+            captured["headers"] = headers or {}
+
+        def getresponse(self):
+            return SimpleNamespace(status=200, read=lambda: b'{"status":"COMPLETED","result":{},"run_id":"r"}')
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.services.tinyfish.http.client.HTTPSConnection", FakeConn)
+    fetch_public_profile("https://example.com", api_key="sk-test", timeout=30)
+    assert captured["headers"]["X-API-Key"] == "sk-test"
+    assert "X-Api-Key" not in captured["headers"]
+
+
 def test_route_hides_transport_errors(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         "app.api.routes.fetch.get_settings",

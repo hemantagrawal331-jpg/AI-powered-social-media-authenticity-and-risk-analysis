@@ -6,6 +6,8 @@ send vault credentials and does not ask TinyFish to sign in.
 
 from __future__ import annotations
 
+import http.client
+import io
 import ipaddress
 import json
 import urllib.error
@@ -218,6 +220,37 @@ def parse_count(value: object) -> int | None:
     return None if number < 0 else number
 
 
+class _BytesResponse:
+    def __init__(self, raw: bytes) -> None:
+        self._raw = raw
+
+    def read(self) -> bytes:
+        return self._raw
+
+    def __enter__(self) -> "_BytesResponse":
+        return self
+
+    def __exit__(self, *_args: object) -> bool:
+        return False
+
+
+def _open_exact(request: urllib.request.Request, timeout: int = 75) -> _BytesResponse:
+    """Send the API key header unchanged. urllib title-cases X-API-Key to X-Api-Key."""
+    parsed = urlparse(request.full_url)
+    headers = {str(key): str(value) for key, value in request.header_items()}
+    conn = http.client.HTTPSConnection(parsed.hostname or "", timeout=timeout)
+    try:
+        conn.request(request.get_method(), parsed.path or "/", body=request.data, headers=headers)
+        response = conn.getresponse()
+        raw = response.read()
+        status = response.status
+    finally:
+        conn.close()
+    if status >= 400:
+        raise urllib.error.HTTPError(request.full_url, status, "", {}, io.BytesIO(raw))
+    return _BytesResponse(raw)
+
+
 def _post_run(body: dict, *, api_key: str, timeout: int, opener: Opener | None) -> dict:
     data = json.dumps(body).encode()
     request = _ExactHeaderRequest(
@@ -230,14 +263,18 @@ def _post_run(body: dict, *, api_key: str, timeout: int, opener: Opener | None) 
         },
         method="POST",
     )
-    open_url = opener or urllib.request.urlopen
+    open_url = opener or _open_exact
     try:
         with open_url(request, timeout=timeout) as response:
             raw = response.read()
     except urllib.error.HTTPError as exc:
         detail = _read_error(exc, api_key)
-        if exc.code in {401, 403}:
-            raise TinyFishError("TinyFish rejected the API key.", 502) from exc
+        if exc.code == 401:
+            raise TinyFishError(detail or "TinyFish rejected the API key.", 502) from exc
+        if exc.code == 403:
+            raise TinyFishError(detail or "TinyFish refused this request.", 502) from exc
+        if exc.code == 402:
+            raise TinyFishError(detail or "TinyFish wallet balance is too low to start a run.", 402) from exc
         if exc.code == 429:
             raise TinyFishError("TinyFish rate limit reached. Try again shortly.", 429) from exc
         status = 400 if exc.code == 400 else 502
