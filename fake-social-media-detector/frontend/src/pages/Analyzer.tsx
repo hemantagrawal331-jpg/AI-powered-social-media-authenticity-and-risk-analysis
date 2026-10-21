@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnalysisLoader } from "../components/analyzer/AnalysisLoader";
 import { ProfileForm } from "../components/analyzer/ProfileForm";
@@ -18,6 +18,14 @@ export function Analyzer() {
   const [fetchUrl, setFetchUrl] = useState("");
   const [fetchNote, setFetchNote] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [tinyfishReady, setTinyfishReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api
+      .health()
+      .then((health) => setTinyfishReady(Boolean(health.tinyfish_configured)))
+      .catch(() => setTinyfishReady(null));
+  }, []);
 
   const loadSample = async (id: string) => {
     setError(null);
@@ -120,13 +128,18 @@ export function Analyzer() {
           />
           <button
             type="button"
-            disabled={fetching || busy || !fetchUrl.trim()}
+            disabled={fetching || busy || !fetchUrl.trim() || tinyfishReady === false}
             onClick={() => void fetchPublic()}
             className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950 disabled:opacity-50"
           >
             {fetching ? "Reading public page…" : "Fetch public profile"}
           </button>
         </div>
+        {tinyfishReady === false && (
+          <p className="mt-3 text-sm text-slate-400">
+            Public page fetch is off on this server. Add TINYFISH_API_KEY in the host environment, or type the profile below.
+          </p>
+        )}
         {fetchNote && <p className="mt-3 text-sm text-slate-400">{fetchNote}</p>}
       </GlassCard>
       <GlassCard>

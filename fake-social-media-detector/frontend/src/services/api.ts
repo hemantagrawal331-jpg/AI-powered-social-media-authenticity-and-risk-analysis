@@ -53,7 +53,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => request<{ status: string }>("/api/health"),
+  health: () => request<{ status: string; tinyfish_configured?: boolean }>("/api/health"),
   samples: () => request<SampleSummary[]>("/api/samples"),
   sample: (id: string) => request<{ id: string; profile: ProfileInput }>(`/api/samples/${id}`),
   analyze: (profile: ProfileInput) =>
@@ -66,6 +66,7 @@ export const api = {
   },
   history: () => request<HistoryItem[]>("/api/history"),
   historyItem: (id: number) => request<AnalysisResult>(`/api/history/${id}`),
+  historyInput: (id: number) => request<ProfileInput>(`/api/history/${id}/input`),
   deleteHistory: (id: number) => request<{ deleted: number }>(`/api/history/${id}`, { method: "DELETE" }),
   compare: (account_a: ProfileInput, account_b: ProfileInput) =>
     request<CompareResult>("/api/compare", {

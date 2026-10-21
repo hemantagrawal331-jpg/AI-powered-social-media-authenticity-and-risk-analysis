@@ -15,5 +15,5 @@ def sample_detail(sample_id: str) -> dict:
     try:
         profile = get_sample_profile(sample_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail=exc.args[0] if exc.args else "Unknown sample") from exc
     return {"id": sample_id, "profile": profile.model_dump()}

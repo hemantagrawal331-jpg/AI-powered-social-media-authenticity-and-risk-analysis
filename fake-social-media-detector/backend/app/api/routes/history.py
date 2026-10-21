@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.schemas.analysis import AnalysisResult, HistoryItem
+from app.schemas.profile import ProfileInput
 from app.services.history_service import HistoryService
 
 router = APIRouter(tags=["history"])
@@ -16,6 +17,11 @@ def list_history(db: Session = Depends(get_db)) -> list[HistoryItem]:
 @router.get("/history/{record_id}", response_model=AnalysisResult)
 def get_history(record_id: int, db: Session = Depends(get_db)) -> AnalysisResult:
     return HistoryService(db).get(record_id)
+
+
+@router.get("/history/{record_id}/input", response_model=ProfileInput)
+def get_history_input(record_id: int, db: Session = Depends(get_db)) -> ProfileInput:
+    return HistoryService(db).get_input(record_id)
 
 
 @router.delete("/history/{record_id}")

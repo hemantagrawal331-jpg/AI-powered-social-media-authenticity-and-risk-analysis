@@ -52,9 +52,8 @@ export function History() {
       return;
     }
     try {
-      const [a, b] = await Promise.all(selected.map((id) => api.historyItem(id)));
-      persistResult(a);
-      sessionStorage.setItem("fakeguard:compare-b", JSON.stringify(b));
+      const [a, b] = await Promise.all(selected.map((id) => api.historyInput(id)));
+      sessionStorage.setItem("fakeguard:compare-pair", JSON.stringify([a, b]));
       navigate("/compare");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Compare failed");
@@ -128,7 +127,7 @@ export function History() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-6 text-slate-500">
+                  <td colSpan={7} className="py-6 text-slate-500">
                     No analyses stored yet. History is optional and local.
                   </td>
                 </tr>

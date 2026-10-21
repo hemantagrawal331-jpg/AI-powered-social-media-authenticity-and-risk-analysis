@@ -10,12 +10,12 @@ BACKEND = ROOT / "backend"
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-from app.api.routes import analyze, compare, fetch, health, history, network, reports, samples  # noqa: E402
+from app.api.routes import analyze, compare, fetch, health, history, model, network, reports, samples  # noqa: E402
 from app.main import app  # noqa: E402
 
 # Vercel may forward "/api/health" or strip the prefix to "/health".
 # Register both so the frontend's /api/* calls succeed.
-for module in (health, analyze, history, compare, samples, reports, network, fetch):
+for module in (health, analyze, history, compare, samples, reports, network, model, fetch):
     app.include_router(module.router)
 
 __all__ = ["app"]

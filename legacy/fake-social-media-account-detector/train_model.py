@@ -4,6 +4,7 @@ evaluates it, and saves the model + feature importance chart.
 """
 import json
 import pickle
+from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
@@ -21,7 +22,8 @@ FEATURES = [
     "posts_per_day", "is_verified",
 ]
 
-df = pd.read_csv("/home/claude/fake-account-detector/data/accounts.csv")
+ROOT = Path(__file__).resolve().parent
+df = pd.read_csv(ROOT / "accounts.csv")
 X = df[FEATURES]
 y = df["label"]
 
@@ -48,7 +50,7 @@ print(report)
 print("Confusion matrix:\n", cm)
 
 # Save model
-with open("/home/claude/fake-account-detector/model/rf_model.pkl", "wb") as f:
+with open(ROOT / "rf_model.pkl", "wb") as f:
     pickle.dump(model, f)
 
 # Save metrics for the report/README
@@ -58,7 +60,7 @@ metrics = {
     "confusion_matrix": cm.tolist(),
     "classification_report": report,
 }
-with open("/home/claude/fake-account-detector/model/metrics.json", "w") as f:
+with open(ROOT / "metrics.json", "w") as f:
     json.dump(metrics, f, indent=2)
 
 # Feature importance chart
@@ -68,5 +70,5 @@ importances.plot(kind="barh", color="#2563eb")
 plt.title("Feature Importance — Random Forest")
 plt.xlabel("Importance")
 plt.tight_layout()
-plt.savefig("/home/claude/fake-account-detector/model/feature_importance.png", dpi=150)
+plt.savefig(ROOT / "feature_importance.png", dpi=150)
 print("Saved model/rf_model.pkl, metrics.json, feature_importance.png")

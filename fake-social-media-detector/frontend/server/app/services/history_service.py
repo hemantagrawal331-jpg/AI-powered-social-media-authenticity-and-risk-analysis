@@ -53,6 +53,12 @@ class HistoryService:
             for row in rows
         ]
 
+    def get_input(self, record_id: int) -> ProfileInput:
+        row = self.db.get(AnalysisRecord, record_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        return ProfileInput(**json.loads(row.input_json))
+
     def get(self, record_id: int) -> AnalysisResult:
         row = self.db.get(AnalysisRecord, record_id)
         if not row:

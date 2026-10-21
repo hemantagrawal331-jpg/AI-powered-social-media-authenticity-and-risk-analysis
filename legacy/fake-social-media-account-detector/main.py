@@ -11,9 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "model" / "rf_model.pkl"
-FRONTEND_DIR = BASE_DIR / "frontend"
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "rf_model.pkl"
+FRONTEND_DIR = BASE_DIR
 FEATURES = [
     "followers", "following", "posts", "account_age_days",
     "has_profile_pic", "has_bio", "username_length",

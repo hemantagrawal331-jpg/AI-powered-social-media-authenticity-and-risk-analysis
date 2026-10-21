@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
 import { RiskBadge } from "../components/common/RiskBadge";
 import { ScoreBar } from "../components/common/ScoreBar";
 import { useSamples } from "../hooks/useSamples";
 import { api } from "../services/api";
-import { emptyProfile, type CompareResult, type ProfileInput } from "../types/analysis";
+import { type CompareResult, type ProfileInput } from "../types/analysis";
 
 export function Compare() {
   const { samples } = useSamples();
@@ -14,6 +14,26 @@ export function Compare() {
   const [result, setResult] = useState<CompareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [fromHistory, setFromHistory] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("fakeguard:compare-pair");
+    if (!raw) return;
+    sessionStorage.removeItem("fakeguard:compare-pair");
+    try {
+      const [accountA, accountB] = JSON.parse(raw) as [ProfileInput, ProfileInput];
+      setFromHistory(`@${accountA.username} and @${accountB.username}`);
+      setBusy(true);
+      setError(null);
+      api
+        .compare(accountA, accountB)
+        .then(setResult)
+        .catch((err: Error) => setError(err.message))
+        .finally(() => setBusy(false));
+    } catch {
+      setError("Saved comparison could not be read.");
+    }
+  }, []);
 
   const run = async () => {
     setBusy(true);
@@ -100,7 +120,7 @@ export function Compare() {
         <GlassCard>
           <p className="text-sm text-slate-400">
             Default comparison is a genuine personal account versus a scam/giveaway sample. You can
-            also compare any two bundled profiles. Empty fallback: {emptyProfile().username || "manual profiles via Analyzer."}
+            also compare any two bundled profiles{fromHistory ? `, or the saved pair ${fromHistory}` : ""}.
           </p>
         </GlassCard>
       )}

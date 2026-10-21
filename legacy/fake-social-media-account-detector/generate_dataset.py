@@ -5,6 +5,7 @@ in later as long as they have similar columns.
 """
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 np.random.seed(42)
 N_GENUINE = 2500
@@ -68,7 +69,8 @@ def _assemble(followers, following, posts, age, pic, bio, uname_len,
 def main():
     df = pd.concat([make_genuine(N_GENUINE), make_fake(N_FAKE)], ignore_index=True)
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-    df.to_csv("/home/claude/fake-account-detector/data/accounts.csv", index=False)
+    out = Path(__file__).resolve().parent / "accounts.csv"
+    df.to_csv(out, index=False)
     print(f"Saved {len(df)} rows -> data/accounts.csv")
     print(df["label"].value_counts())
 

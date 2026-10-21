@@ -62,7 +62,7 @@ def network_for_sample(sample_id: str) -> dict:
     try:
         profile = get_sample_profile(sample_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail=exc.args[0] if exc.args else "Unknown sample") from exc
     samples = sample_payloads()
     cluster = detect_cluster(profile, samples)
     network = build_network(profile, cluster.members, 70 if cluster.detected else 30)
