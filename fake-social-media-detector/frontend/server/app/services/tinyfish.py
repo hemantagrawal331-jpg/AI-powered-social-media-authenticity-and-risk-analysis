@@ -13,7 +13,7 @@ import json
 import urllib.error
 import urllib.request
 from typing import Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 TINYFISH_RUN_URL = "https://agent.tinyfish.ai/v1/automation/run"
 
@@ -154,9 +154,20 @@ def normalize_public_url(raw: str) -> str:
         or ip.is_unspecified
     ):
         raise TinyFishError("That URL is not a public web page.", 400)
-    if len(text) > 400:
+    cleaned = _without_tracking(parsed)
+    if len(cleaned) > 400:
         raise TinyFishError("Profile URL is too long.", 400)
-    return text
+    return cleaned
+
+
+def _without_tracking(parsed) -> str:
+    tracking = {"igsh", "igshid", "fbclid", "si", "feature", "ref_src"}
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() not in tracking and not key.lower().startswith("utm_")
+    ]
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", urlencode(query), ""))
 
 
 def platform_from_url(url: str) -> str:
@@ -347,7 +358,8 @@ def _as_dict(result: object) -> dict:
 
 
 def _to_analyzer_payload(url: str, extracted: dict, *, run_id: object) -> dict:
-    username = _clean_username(str(extracted.get("username") or "")) or username_from_url(url)
+    login_required = bool(extracted.get("login_required"))
+    username = _clean_username(_shown_text(extracted.get("username"))) or username_from_url(url)
     profile: dict = {
         "platform": platform_from_url(url),
         "profile_url": url,
@@ -355,10 +367,10 @@ def _to_analyzer_payload(url: str, extracted: dict, *, run_id: object) -> dict:
     if username:
         profile["username"] = username
 
-    display_name = str(extracted.get("display_name") or "").strip()[:160]
+    display_name = _shown_text(extracted.get("display_name"))[:160]
     if display_name:
         profile["display_name"] = display_name
-    bio = str(extracted.get("bio") or "").strip()[:2000]
+    bio = _shown_text(extracted.get("bio"))[:2000]
     if bio:
         profile["bio"] = bio
 
@@ -369,24 +381,28 @@ def _to_analyzer_payload(url: str, extracted: dict, *, run_id: object) -> dict:
     if profile.get("external_links"):
         profile["has_external_link"] = True
 
-    if "verified" in extracted and isinstance(extracted.get("verified"), bool):
-        profile["verified"] = extracted["verified"]
-    if "has_profile_picture" in extracted and isinstance(extracted.get("has_profile_picture"), bool):
-        profile["has_profile_picture"] = extracted["has_profile_picture"]
-    if "private_account" in extracted and isinstance(extracted.get("private_account"), bool):
-        profile["private_account"] = extracted["private_account"]
+    if not login_required:
+        if isinstance(extracted.get("verified"), bool):
+            profile["verified"] = extracted["verified"]
+        if isinstance(extracted.get("has_profile_picture"), bool):
+            profile["has_profile_picture"] = extracted["has_profile_picture"]
+        if isinstance(extracted.get("private_account"), bool):
+            profile["private_account"] = extracted["private_account"]
 
-    captions = _string_list(extracted.get("captions"), limit=5, item_limit=500)
-    hashtags = _string_list(extracted.get("hashtags"), limit=40, item_limit=60)
+    captions = [item for item in _string_list(extracted.get("captions"), limit=5, item_limit=500) if _shown_text(item)]
+    hashtags = [tag.lstrip("#") for tag in _string_list(extracted.get("hashtags"), limit=40, item_limit=60) if _shown_text(tag)]
     if captions:
         profile["captions"] = captions
     if hashtags:
-        profile["hashtags"] = [tag.lstrip("#") for tag in hashtags]
+        profile["hashtags"] = hashtags
 
-    login_required = bool(extracted.get("login_required"))
-    notes = str(extracted.get("notes") or "").strip()[:400]
+    notes = _shown_text(extracted.get("notes"))[:400]
     if login_required:
-        lead = "This page asked for a login. Only fields visible without signing in were kept. FakeGuard does not log in."
+        kept = f" The username @{username} was taken from the link." if username else ""
+        lead = (
+            "Instagram, or this profile, asked for a login. FakeGuard does not sign in."
+            f"{kept} Counts, bio, and posts that were not on the logged-out page were left blank."
+        )
     else:
         lead = "Fields came from the public page. Review them before analyzing. Missing numbers were left blank."
     detail = f"{lead} {notes}".strip()
@@ -398,6 +414,13 @@ def _to_analyzer_payload(url: str, extracted: dict, *, run_id: object) -> dict:
         "run_id": str(run_id) if run_id else None,
         "profile": profile,
     }
+
+
+def _shown_text(value: object) -> str:
+    text = str(value or "").strip()
+    if text.lower() in {"unknown", "n/a", "na", "none", "null", "-", "—", "not visible", "not shown", "unavailable"}:
+        return ""
+    return text
 
 
 def _clean_username(value: str) -> str:

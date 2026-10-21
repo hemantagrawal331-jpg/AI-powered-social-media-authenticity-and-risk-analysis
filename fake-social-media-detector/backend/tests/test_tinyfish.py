@@ -35,6 +35,8 @@ def test_public_url_rejects_local_targets():
     with pytest.raises(TinyFishError):
         normalize_public_url("file:///etc/passwd")
     assert normalize_public_url("instagram.com/ada").startswith("https://instagram.com/ada")
+    assert "igsh" not in normalize_public_url("https://www.instagram.com/virat.kohli?igsh=MXZ")
+    assert username_from_url("https://www.instagram.com/virat.kohli?igsh=MXZ") == "virat.kohli"
 
 
 def test_username_and_platform_from_common_urls():
@@ -98,6 +100,41 @@ def test_fetch_maps_public_fields_and_does_not_ask_for_login(monkeypatch: pytest
     assert result["profile"]["has_external_link"] is True
     assert result["login_required"] is False
     assert result["run_id"] == "run-1"
+
+
+def test_login_wall_keeps_username_from_the_link():
+    def opener(request, timeout=0):
+        return _Response(
+            {
+                "run_id": "run-2",
+                "status": "COMPLETED",
+                "result": {
+                    "username": "unknown",
+                    "display_name": "unknown",
+                    "bio": "unknown",
+                    "verified": False,
+                    "has_profile_picture": False,
+                    "followers": -1,
+                    "following": -1,
+                    "posts": -1,
+                    "login_required": True,
+                    "notes": "Instagram profile page is blocked by login wall.",
+                },
+            }
+        )
+
+    result = fetch_public_profile(
+        "https://www.instagram.com/virat.kohli?igsh=MXZ",
+        api_key="test-key",
+        opener=opener,
+    )
+    assert result["login_required"] is True
+    assert result["profile"]["username"] == "virat.kohli"
+    assert result["profile"]["profile_url"] == "https://www.instagram.com/virat.kohli"
+    assert "bio" not in result["profile"]
+    assert "followers" not in result["profile"]
+    assert "verified" not in result["profile"]
+    assert "does not sign in" in result["notes"]
 
 
 def test_exact_transport_keeps_api_key_header(monkeypatch: pytest.MonkeyPatch):
