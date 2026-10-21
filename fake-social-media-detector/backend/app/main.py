@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import analyze, compare, health, history, model, network, reports, samples
+from app.api.routes import analyze, compare, fetch, health, history, model, network, reports, samples
 from app.config import get_settings
 from app.database.session import Base, engine
 
@@ -35,6 +35,7 @@ app.include_router(samples.router, prefix=settings.api_prefix)
 app.include_router(reports.router, prefix=settings.api_prefix)
 app.include_router(network.router, prefix=settings.api_prefix)
 app.include_router(model.router, prefix=settings.api_prefix)
+app.include_router(fetch.router, prefix=settings.api_prefix)
 
 
 @app.exception_handler(Exception)

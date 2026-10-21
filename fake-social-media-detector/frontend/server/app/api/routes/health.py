@@ -12,4 +12,5 @@ def health() -> dict:
         "status": "ok",
         "service": settings.app_name,
         "version": settings.app_version,
+        "tinyfish_configured": bool(settings.tinyfish_api_key.strip()),
     }

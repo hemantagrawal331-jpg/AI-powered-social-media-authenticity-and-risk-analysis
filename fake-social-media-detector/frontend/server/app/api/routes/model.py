@@ -34,6 +34,7 @@ def model_status() -> dict:
         "platform_apis": {
             "instagram": "disabled — official Graph API requires an approved Meta app",
             "twitter": "disabled — official API requires a bearer token and app review",
+            "tinyfish": "reads a public profile URL when TINYFISH_API_KEY is set; does not log in",
             "scraping": "not used",
         },
         "continuous_validation": "Analyst labels are stored via POST /api/model/feedback.",

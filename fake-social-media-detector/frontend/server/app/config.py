@@ -40,8 +40,17 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 2 * 1024 * 1024  # 2 MB
     max_image_bytes: int = 1 * 1024 * 1024  # 1 MB
     history_limit: int = 200
+    tinyfish_api_key: str = ""
+    tinyfish_timeout_seconds: int = 75
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {
+        "env_file": (
+            str(REPO_DIR / ".env"),
+            str(REPO_DIR.parent / ".env"),
+            str(BACKEND_DIR / ".env"),
+        ),
+        "extra": "ignore",
+    }
 
     @property
     def cors_origin_list(self) -> list[str]:

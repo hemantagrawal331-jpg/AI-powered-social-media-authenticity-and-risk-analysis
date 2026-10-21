@@ -298,6 +298,14 @@ export interface CompareResult {
   differences: string[];
 }
 
+export interface PublicProfileFetch {
+  fetched: boolean;
+  login_required: boolean;
+  notes: string;
+  run_id: string | null;
+  profile: Partial<ProfileInput>;
+}
+
 export const emptyProfile = (): ProfileInput => ({
   username: "",
   platform: "instagram",

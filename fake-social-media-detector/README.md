@@ -43,9 +43,9 @@ This tool provides an estimated risk score based on available profile signals an
 
 The prototype:
 
-- Analyzes user-supplied or bundled sample data only
-- Does not scrape websites
-- Does not request social-media passwords
+- Analyzes user-supplied data, bundled samples, or fields read from a public page
+- Can read a public profile page through TinyFish when `TINYFISH_API_KEY` is set
+- Does not log in and does not request social-media passwords
 - Does not claim a profile photo proves a real person
 
 ---
@@ -96,6 +96,8 @@ npm run dev
 UI: [http://localhost:5173](http://localhost:5173)
 
 Optional: copy `.env.example` values. The Vite dev server proxies `/api` to port 8000, so `VITE_API_URL` can stay empty during local development.
+
+To fill the analyzer from a public profile URL, set `TINYFISH_API_KEY` in `fake-social-media-detector/.env` (or in the Vercel project environment). The key stays on the server. See [TinyFish authentication](https://docs.tinyfish.ai/authentication).
 
 ---
 

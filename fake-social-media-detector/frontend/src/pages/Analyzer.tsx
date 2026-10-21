@@ -15,6 +15,9 @@ export function Analyzer() {
   const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [fetchUrl, setFetchUrl] = useState("");
+  const [fetchNote, setFetchNote] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
 
   const loadSample = async (id: string) => {
     setError(null);
@@ -37,6 +40,36 @@ export function Analyzer() {
       setError(err instanceof Error ? err.message : "JSON upload failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const fetchPublic = async () => {
+    const url = fetchUrl.trim();
+    if (!url) {
+      setError("Paste a public profile URL first.");
+      return;
+    }
+    setFetching(true);
+    setError(null);
+    setFetchNote("Reading the public page. This usually takes under a minute.");
+    try {
+      const data = await api.fetchPublicProfile(url);
+      setProfile((current) => ({
+        ...current,
+        ...data.profile,
+        captions: data.profile.captions ?? current.captions,
+        hashtags: data.profile.hashtags ?? current.hashtags,
+        recent_activity: current.recent_activity,
+        follower_growth_events: current.follower_growth_events,
+        following_growth_events: current.following_growth_events,
+        engagement_history: current.engagement_history,
+      }));
+      setFetchNote(data.notes);
+    } catch (err) {
+      setFetchNote(null);
+      setError(err instanceof Error ? err.message : "Could not read that public page");
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -69,11 +102,33 @@ export function Analyzer() {
       <div>
         <h1 className="font-display text-3xl">Analyzer</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Enter profile signals manually, load a sample, or upload JSON. FakeGuard never asks for
-          passwords or platform login.
+          Enter profile signals manually, load a sample, upload JSON, or fetch a public page.
+          FakeGuard never asks for passwords or platform login.
         </p>
       </div>
       <ErrorBanner message={error} />
+      <GlassCard>
+        <p className="text-sm text-slate-300">
+          Paste a public profile link. TinyFish reads the page anyone can see and fills the form. It does not log in.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input
+            value={fetchUrl}
+            onChange={(event) => setFetchUrl(event.target.value)}
+            placeholder="https://instagram.com/example"
+            className="input min-w-[16rem] flex-1"
+          />
+          <button
+            type="button"
+            disabled={fetching || busy || !fetchUrl.trim()}
+            onClick={() => void fetchPublic()}
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950 disabled:opacity-50"
+          >
+            {fetching ? "Reading public page…" : "Fetch public profile"}
+          </button>
+        </div>
+        {fetchNote && <p className="mt-3 text-sm text-slate-400">{fetchNote}</p>}
+      </GlassCard>
       <GlassCard>
         <ProfileForm
           value={profile}

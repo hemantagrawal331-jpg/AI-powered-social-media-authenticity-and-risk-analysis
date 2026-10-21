@@ -17,10 +17,10 @@ for path in candidates:
 else:
     raise RuntimeError("FakeGuard backend package was not found next to the frontend.")
 
-from app.api.routes import analyze, compare, health, history, model, network, reports, samples  # noqa: E402
+from app.api.routes import analyze, compare, fetch, health, history, model, network, reports, samples  # noqa: E402
 from app.main import app  # noqa: E402
 
-for module in (health, analyze, history, compare, samples, reports, network, model):
+for module in (health, analyze, history, compare, samples, reports, network, model, fetch):
     app.include_router(module.router)
 
 __all__ = ["app"]

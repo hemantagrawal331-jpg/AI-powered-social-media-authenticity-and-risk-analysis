@@ -5,11 +5,11 @@
   "installCommand": "npm install && if [ -d ../backend ]; then rm -rf server && mkdir -p server && cp -R ../backend/app server/app && cp -R ../backend/data server/data; fi",
   "functions": {
     "api/index.py": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "{server/**,vercel_app.py}"
     },
     "api/[[...path]].py": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "{server/**,vercel_app.py}"
     }
   },

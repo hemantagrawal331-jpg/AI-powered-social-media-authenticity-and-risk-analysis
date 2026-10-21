@@ -3,6 +3,7 @@ import type {
   CompareResult,
   HistoryItem,
   ProfileInput,
+  PublicProfileFetch,
   ReportMeta,
   SampleSummary,
 } from "../types/analysis";
@@ -86,6 +87,8 @@ export const api = {
   }) => request<{ id: number; stored: boolean }>("/api/model/feedback", { method: "POST", body: JSON.stringify(body) }),
   modelFeedbackList: () => request<{ counts: Record<string, number>; items: Record<string, unknown>[] }>("/api/model/feedback"),
   ingestUrl: (url: string) => request<Record<string, unknown>>("/api/ingest/url", { method: "POST", body: JSON.stringify({ url }) }),
+  fetchPublicProfile: (url: string) =>
+    request<PublicProfileFetch>("/api/profile/fetch", { method: "POST", body: JSON.stringify({ url }) }),
 };
 
 export function persistResult(result: AnalysisResult) {

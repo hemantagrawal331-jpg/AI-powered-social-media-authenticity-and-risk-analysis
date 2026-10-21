@@ -37,8 +37,8 @@ export function ModelLab() {
         <h1 className="mt-2 font-display text-3xl">Training data, validation, history, APIs</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-400">
           Holdout metrics are from overlapping synthetic archetypes (not live Instagram). Sophisticated
-          bots were held out of training — that adversarial AUC is expected to be weak. Live
-          Instagram/X fetch is off.
+          bots were held out of training — that adversarial AUC is expected to be weak. Public page
+          fetch runs from Analyzer when TinyFish is configured. It does not log in.
         </p>
       </div>
       <ErrorBanner message={error} />
