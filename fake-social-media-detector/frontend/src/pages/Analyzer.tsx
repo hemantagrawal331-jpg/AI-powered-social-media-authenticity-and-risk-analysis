@@ -6,7 +6,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
 import { useSamples } from "../hooks/useSamples";
 import { api, persistResult } from "../services/api";
-import { emptyProfile, type ProfileInput } from "../types/analysis";
+import { emptyProfile, type ProfileInput, type RetrievedField } from "../types/analysis";
 
 export function Analyzer() {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export function Analyzer() {
   const [busy, setBusy] = useState(false);
   const [fetchUrl, setFetchUrl] = useState("");
   const [fetchNote, setFetchNote] = useState<string | null>(null);
+  const [fetchFields, setFetchFields] = useState<RetrievedField[]>([]);
   const [fetching, setFetching] = useState(false);
   const [tinyfishReady, setTinyfishReady] = useState<boolean | null>(null);
 
@@ -59,22 +60,37 @@ export function Analyzer() {
     }
     setFetching(true);
     setError(null);
-    setFetchNote("Reading the public page. This usually takes under a minute.");
+    setFetchNote("Reading the public profile.");
     try {
       const data = await api.fetchPublicProfile(url);
-      setProfile((current) => ({
-        ...current,
-        ...data.profile,
-        captions: data.profile.captions ?? current.captions,
-        hashtags: data.profile.hashtags ?? current.hashtags,
-        recent_activity: current.recent_activity,
-        follower_growth_events: current.follower_growth_events,
-        following_growth_events: current.following_growth_events,
-        engagement_history: current.engagement_history,
-      }));
+      if (data.provider === "github-rest-v3") {
+        setProfile({
+          ...emptyProfile(),
+          ...data.profile,
+          captions: data.profile.captions ?? [],
+          hashtags: data.profile.hashtags ?? [],
+          recent_activity: [],
+          follower_growth_events: [],
+          following_growth_events: [],
+          engagement_history: [],
+        });
+      } else {
+        setProfile((current) => ({
+          ...current,
+          ...data.profile,
+          captions: data.profile.captions ?? current.captions,
+          hashtags: data.profile.hashtags ?? current.hashtags,
+          recent_activity: current.recent_activity,
+          follower_growth_events: current.follower_growth_events,
+          following_growth_events: current.following_growth_events,
+          engagement_history: current.engagement_history,
+        }));
+      }
+      setFetchFields(data.fields ?? []);
       setFetchNote(data.notes);
     } catch (err) {
       setFetchNote(null);
+      setFetchFields([]);
       setError(err instanceof Error ? err.message : "Could not read that public page");
     } finally {
       setFetching(false);
@@ -118,30 +134,40 @@ export function Analyzer() {
       <ErrorBanner message={error} />
       <GlassCard>
         <p className="text-sm leading-6 text-ink-soft">
-          Public page fetch reads a page anyone can open and fills the form. It does not log in, and it does not score the account by itself.
+          Public page fetch reads a page anyone can open, or a GitHub user through GitHub’s public API. It does not log in, and it does not score the account by itself.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
             value={fetchUrl}
             onChange={(event) => setFetchUrl(event.target.value)}
-            placeholder="https://instagram.com/example"
+            placeholder="https://github.com/example or a public profile URL"
             className="input min-w-[16rem] flex-1"
           />
           <button
             type="button"
-            disabled={fetching || busy || !fetchUrl.trim() || tinyfishReady === false}
+            disabled={fetching || busy || !fetchUrl.trim() || (tinyfishReady === false && !isGithubProfile(fetchUrl))}
             onClick={() => void fetchPublic()}
             className="btn"
           >
-            {fetching ? "Reading public page…" : "Fetch public profile"}
+            {fetching ? "Reading public profile…" : "Fetch public profile"}
           </button>
         </div>
-        {tinyfishReady === false && (
+        {tinyfishReady === false && !isGithubProfile(fetchUrl) && (
           <p className="mt-3 text-sm text-muted">
-            Public page fetch is off on this server. Add TINYFISH_API_KEY in the host environment, or type the profile below.
+            Public page fetch is off on this server. A github.com user URL still works. Otherwise type the profile below.
           </p>
         )}
         {fetchNote && <p className="mt-3 text-sm text-muted">{fetchNote}</p>}
+        {fetchFields.length > 0 && (
+          <ul className="mt-3 space-y-1 text-sm text-muted">
+            {fetchFields.map((field) => (
+              <li key={field.name}>
+                {field.name}: {field.status}
+                {field.detail ? ` — ${field.detail}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
       </GlassCard>
       <GlassCard>
         <ProfileForm
@@ -157,6 +183,17 @@ export function Analyzer() {
       </GlassCard>
     </div>
   );
+}
+
+function isGithubProfile(url: string): boolean {
+  try {
+    const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    return host === "github.com" && parts.length === 1;
+  } catch {
+    return false;
+  }
 }
 
 function fileToBase64(file: File): Promise<string> {

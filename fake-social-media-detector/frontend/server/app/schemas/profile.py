@@ -97,6 +97,7 @@ class ProfileInput(BaseModel):
     image_filename: str | None = None
     sample_id: str | None = None
     private_account: bool | None = None
+    source_note: str = Field("", max_length=500)
     post_timestamps: list[str] = Field(default_factory=list)
     follower_usernames: list[str] = Field(default_factory=list)
     comment_samples: list[str] = Field(default_factory=list)

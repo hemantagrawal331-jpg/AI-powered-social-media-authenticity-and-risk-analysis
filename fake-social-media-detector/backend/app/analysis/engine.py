@@ -245,7 +245,7 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         top_risk_signals=fused["top_risk_signals"],
         evidence_waterfall=fused["evidence_waterfall"],
         counterfactuals=fused["counterfactuals"],
-        explanation=fused["explanation"],
+        explanation=_with_source_note(fused["explanation"], profile.source_note),
         limitations=fused["limitations"],
         signal_hardness=fused["signal_hardness"],
         language_analysis=language,
@@ -255,6 +255,13 @@ def analyze_profile(profile: ProfileInput, samples: list[dict] | None = None) ->
         disclaimer=DISCLAIMER,
         created_at=datetime.utcnow(),
     )
+
+
+def _with_source_note(explanation: str, source_note: str) -> str:
+    note = (source_note or "").strip()
+    if not note:
+        return explanation
+    return f"{explanation} {note}".strip()
 
 
 def _reasons(

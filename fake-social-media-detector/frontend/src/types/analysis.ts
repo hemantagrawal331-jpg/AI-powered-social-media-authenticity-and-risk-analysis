@@ -30,6 +30,7 @@ export interface ProfileInput {
   image_filename?: string | null;
   sample_id?: string | null;
   private_account?: boolean;
+  source_note?: string;
   post_timestamps?: string[];
   follower_usernames?: string[];
   comment_samples?: string[];
@@ -300,12 +301,26 @@ export interface CompareResult {
   differences: string[];
 }
 
+export interface RetrievedField {
+  name: string;
+  status: "observed" | "unavailable" | string;
+  provider: string;
+  observed_at: string;
+  mapped_to_model?: boolean;
+  value?: unknown;
+  detail?: string;
+}
+
 export interface PublicProfileFetch {
   fetched: boolean;
   login_required: boolean;
   notes: string;
   run_id: string | null;
   profile: Partial<ProfileInput>;
+  provider?: string;
+  model_status?: string;
+  retrieved_at?: string;
+  fields?: RetrievedField[];
 }
 
 export const emptyProfile = (): ProfileInput => ({
