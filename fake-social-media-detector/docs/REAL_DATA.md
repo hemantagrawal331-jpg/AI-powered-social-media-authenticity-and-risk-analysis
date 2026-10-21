@@ -36,9 +36,30 @@ X’s user lookup (`GET /2/users/by/username/:username`) requires a bearer token
 
 TinyFish remains the logged-out page reader for other public URLs. It does not sign in. An Instagram profile URL still stops at the login page.
 
+## Observations and labels
+
+Schema `github-public-v1` is in `backend/app/datasets/schema.py`. Each stored field has a status of `observed` or `unavailable`. `public_repos` is stored under that name. `posts` and `average_likes` stay unavailable. A website is stored only as `website_listed`, which is not an identity check.
+
+Observations and labels are different files. A second observation of the same account key is rejected. A label is rejected when its evidence is follower count, username shape, a missing verification badge, a missing fraud report, repository count, or a model score. Confirmed threat labels need a named source, a non-automatic review method, and moderate or high evidence quality. `unknown` is allowed when the evidence is insufficient.
+
+Local files, not committed:
+
+- `data/real/observations.jsonl`
+- `data/real/labels.jsonl`
+
+Collected on 21 October 2026 from the live GitHub API:
+
+- Observations stored: 1 (`octocat`)
+- Independently supported labels: 0
+- Training: not run
+- Independent evaluation: not run
+- Metrics: none. A metric is withheld until at least 30 accounts have a confirmed label.
+
+The one observation is a public profile snapshot. It is not a training example. Splits, when labels exist, assign a whole account to train, validation, or test so two snapshots of one account cannot fall on both sides.
+
 ## Labels
 
-A future labeled file, kept outside git, needs one row per observation with: platform, account id hash, observed_at, label, label_status (`confirmed`, `suspected`, or `unknown`), evidence, and label_source. Several labels may apply to one account. A missing malicious report is `unknown`, not genuine. No such file is in this repository, so there is no real-world precision, recall, or calibration result.
+No labeled file of real accounts is in this repository. A missing malicious report stays `unknown`. There is no real-world precision, recall, F1, or calibration number.
 
 ## Setup
 
@@ -48,6 +69,6 @@ No new required variable. Optional:
 GITHUB_TOKEN=   # server only, never a VITE_ variable
 ```
 
-The fetch route is `POST /api/profile/fetch` with `{"url":"https://github.com/octocat"}`. Tests: `backend/tests/test_github_provider.py`.
+The fetch route is `POST /api/profile/fetch` with `{"url":"https://github.com/octocat"}`. Tests: `backend/tests/test_github_provider.py` and `backend/tests/test_dataset_foundation.py`.
 
-This change is not deployed until a new production deployment is made. The current live site does not include it until then.
+The GitHub lookup and this collector are not on the production site until a new deployment is made. The saved joblib model is unchanged.
