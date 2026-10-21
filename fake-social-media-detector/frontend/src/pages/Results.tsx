@@ -7,8 +7,8 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
 import { RiskBadge } from "../components/common/RiskBadge";
 import { ScoreBar } from "../components/common/ScoreBar";
-import { api, persistResult, readPersistedResult } from "../services/api";
-import type { AnalysisResult } from "../types/analysis";
+import { api, persistResult, readPersistedFetch, readPersistedResult } from "../services/api";
+import type { AnalysisResult, RetrievedField } from "../types/analysis";
 
 export function Results() {
   const { id } = useParams();
@@ -82,6 +82,10 @@ export function Results() {
             <p className="mt-2 text-xs text-muted">out of 100 · higher looks more genuine</p>
           </div>
         </div>
+        <div className="mt-6 border border-caution/40 bg-caution/10 px-4 py-3 text-sm leading-6 text-ink-soft">
+          Experimental — not validated on real-world accounts. The number below is an unvalidated estimate from a model trained on synthetic profiles. It is not the measured chance that this account is fake. A missing field is not suspicious, and the absence of a scam report does not make the account genuine.
+        </div>
+        <FetchFacts username={result.username} />
         <p className="mt-6 max-w-3xl text-sm leading-7 text-ink-soft">
             {result.explanation ||
             `Combined risk score is ${Math.round(result.fake_probability)} on a 0–100 scale. This is a relative risk indicator, not the percentage chance the account is fake.`}
@@ -169,7 +173,7 @@ export function Results() {
           <div className="space-y-3">
             {(result.top_positive_signals || []).slice(0, 4).map((signal) => (
               <div key={signal.signal_name} className="border border-verified/20 bg-verified/5 p-3 text-sm">
-                <p className="font-medium text-verified">Supports a genuine reading. {signal.human_explanation}</p>
+                <p className="font-medium text-verified">Model inference, not a confirmed finding. {signal.human_explanation}</p>
                 <p className="mt-1 text-xs text-muted">{signal.statistical_evidence}</p>
               </div>
             ))}
@@ -398,8 +402,10 @@ export function Results() {
         </GlassCard>
       )}
 
-      <GlassCard title="Continuous validation">
-        <p className="text-sm text-muted">Mark this result so the model can be retrained later.</p>
+      <GlassCard title="Reviewer note">
+        <p className="text-sm text-muted">
+          These buttons store a note next to the score. They do not create an evidence-backed label, and they do not train the model.
+        </p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
@@ -412,7 +418,7 @@ export function Results() {
                   predicted_fake: result.fake_probability,
                   analyst_label: "genuine",
                 })
-                .then(() => setNotice("Labeled genuine. Stored for later retraining."))
+                .then(() => setNotice("Note stored: genuine. This is not an evidence-backed label and does not train the model."))
                 .catch((err: Error) => setError(err.message))
             }
           >
@@ -429,7 +435,7 @@ export function Results() {
                   predicted_fake: result.fake_probability,
                   analyst_label: "fake",
                 })
-                .then(() => setNotice("Labeled fake. Stored for later retraining."))
+                .then(() => setNotice("Note stored: fake. This is not an evidence-backed label and does not train the model."))
                 .catch((err: Error) => setError(err.message))
             }
           >
@@ -439,6 +445,50 @@ export function Results() {
       </GlassCard>
     </div>
   );
+}
+
+function FetchFacts({ username }: { username: string }) {
+  const fetched = readPersistedFetch();
+  const sameAccount = fetched?.profile?.username?.toLowerCase() === username.toLowerCase();
+  const fields = sameAccount ? fetched?.fields ?? [] : [];
+  const observed = fields.filter((field) => field.status === "observed");
+  const unavailable = fields.filter((field) => field.status !== "observed");
+  return (
+    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted">Observed facts</p>
+        {observed.length ? (
+          <ul className="mt-2 space-y-1 text-sm text-ink-soft">
+            {observed.map((field) => (
+              <li key={field.name}>
+                {field.name}: {displayField(field)}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">No authorized source observation is attached to this result. The form values are what was submitted.</p>
+        )}
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted">Unavailable information</p>
+        {unavailable.length ? (
+          <ul className="mt-2 space-y-1 text-sm text-muted">
+            {unavailable.map((field) => (
+              <li key={field.name}>{field.name}: unavailable{field.detail ? ` — ${field.detail}` : ""}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">No source field list is attached.</p>
+        )}
+        <p className="mt-3 text-sm text-ink-soft">Evidence-backed findings: none for this result.</p>
+      </div>
+    </div>
+  );
+}
+
+function displayField(field: RetrievedField) {
+  if (field.value == null || field.value === "") return "—";
+  return String(field.value);
 }
 
 function Row({ label, value }: { label: string; value: string }) {

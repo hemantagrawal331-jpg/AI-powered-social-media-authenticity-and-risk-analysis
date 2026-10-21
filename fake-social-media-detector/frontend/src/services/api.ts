@@ -92,6 +92,24 @@ export const api = {
     request<PublicProfileFetch>("/api/profile/fetch", { method: "POST", body: JSON.stringify({ url }) }),
 };
 
+export function persistFetch(data: PublicProfileFetch | null) {
+  if (!data) {
+    sessionStorage.removeItem("fakeguard:last-fetch");
+    return;
+  }
+  sessionStorage.setItem("fakeguard:last-fetch", JSON.stringify(data));
+}
+
+export function readPersistedFetch(): PublicProfileFetch | null {
+  const raw = sessionStorage.getItem("fakeguard:last-fetch");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PublicProfileFetch;
+  } catch {
+    return null;
+  }
+}
+
 export function persistResult(result: AnalysisResult) {
   sessionStorage.setItem("fakeguard:last", JSON.stringify(result));
 }

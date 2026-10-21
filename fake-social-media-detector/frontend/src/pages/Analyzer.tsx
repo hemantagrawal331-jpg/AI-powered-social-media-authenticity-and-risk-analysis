@@ -5,7 +5,7 @@ import { ProfileForm } from "../components/analyzer/ProfileForm";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GlassCard } from "../components/common/GlassCard";
 import { useSamples } from "../hooks/useSamples";
-import { api, persistResult } from "../services/api";
+import { api, persistFetch, persistResult } from "../services/api";
 import { emptyProfile, type ProfileInput, type RetrievedField } from "../types/analysis";
 
 export function Analyzer() {
@@ -32,6 +32,9 @@ export function Analyzer() {
     setError(null);
     try {
       const sample = await api.sample(id);
+      persistFetch(null);
+      setFetchFields([]);
+      setFetchNote(null);
       setProfile(sample.profile);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load sample");
@@ -88,6 +91,7 @@ export function Analyzer() {
       }
       setFetchFields(data.fields ?? []);
       setFetchNote(data.notes);
+      persistFetch(data);
     } catch (err) {
       setFetchNote(null);
       setFetchFields([]);
@@ -159,14 +163,14 @@ export function Analyzer() {
         )}
         {fetchNote && <p className="mt-3 text-sm text-muted">{fetchNote}</p>}
         {fetchFields.length > 0 && (
-          <ul className="mt-3 space-y-1 text-sm text-muted">
-            {fetchFields.map((field) => (
-              <li key={field.name}>
-                {field.name}: {field.status}
-                {field.detail ? ` — ${field.detail}` : ""}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 space-y-3 text-sm">
+            <p className="border border-caution/40 bg-caution/10 px-3 py-2 text-ink-soft">
+              Experimental — not validated on real-world accounts. This list is what the source returned. It is not a score, and missing fields are not suspicious.
+            </p>
+            <FieldList title="Observed facts" rows={fetchFields.filter((field) => field.status === "observed")} />
+            <FieldList title="Unavailable information" rows={fetchFields.filter((field) => field.status !== "observed")} />
+            <p className="text-muted">Evidence-backed findings: none. No reviewer label is attached to this fetch.</p>
+          </div>
         )}
       </GlassCard>
       <GlassCard>
@@ -181,6 +185,23 @@ export function Analyzer() {
           busy={busy}
         />
       </GlassCard>
+    </div>
+  );
+}
+
+function FieldList({ title, rows }: { title: string; rows: RetrievedField[] }) {
+  if (!rows.length) return null;
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wide text-muted">{title}</p>
+      <ul className="mt-1 space-y-1 text-muted">
+        {rows.map((field) => (
+          <li key={field.name}>
+            {field.name}: {field.status === "observed" ? String(field.value ?? "—") : "unavailable"}
+            {field.detail ? ` — ${field.detail}` : ""}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

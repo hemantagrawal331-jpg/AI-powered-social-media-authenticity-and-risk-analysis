@@ -35,14 +35,14 @@ export function ModelLab() {
         </p>
         <h1 className="mt-2 font-display text-4xl tracking-tight">What the model was measured on</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Holdout metrics are from overlapping synthetic archetypes (not live Instagram). Sophisticated
-          bots were held out of training — that adversarial AUC is expected to be weak. Public page
-          fetch runs from Analyzer when TinyFish is configured. It does not log in.
+          Experimental — not validated on real-world accounts. The percentages below are from a synthetic
+          holdout, not from live GitHub, Instagram, or X accounts. They are not a measured accuracy for
+          a profile you fetch. Analyst feedback on this page is stored as a note. It does not train the model.
         </p>
       </div>
       <ErrorBanner message={error} />
       <div className="grid gap-4 md:grid-cols-4">
-        <Stat label="Holdout accuracy" value={pct(data?.accuracy)} />
+        <Stat label="Synthetic holdout accuracy" value={pct(data?.accuracy)} />
         <Stat label="F1" value={pct(data?.f1)} />
         <Stat label="PR-AUC" value={pct(data?.pr_auc)} />
         <Stat label="ROC-AUC" value={pct(data?.roc_auc)} />
@@ -86,7 +86,7 @@ export function ModelLab() {
       </GlassCard>
       <GlassCard title="Continuous validation (analyst labels)">
         <p className="text-sm text-muted">
-          After an analysis, mark it genuine or fake on the results page. Stored labels:{" "}
+          A results-page note is listed here. It is not an evidence-backed label. Stored notes:{" "}
           {JSON.stringify(feedback?.counts || {})}
         </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">

@@ -55,6 +55,14 @@ class GitHubLookupError(Exception):
 Transport = Callable[[str], tuple[int, dict]]
 
 
+def is_github_host(url: str) -> bool:
+    text = (url or "").strip()
+    if "://" not in text:
+        text = f"https://{text}"
+    host = (urlparse(text).hostname or "").lower().removeprefix("www.")
+    return host == "github.com"
+
+
 def is_github_profile_url(url: str) -> bool:
     try:
         _username_from_url(url)

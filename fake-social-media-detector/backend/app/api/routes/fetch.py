@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.providers.github_public import GitHubLookupError, is_github_profile_url, lookup_github_profile
+from app.providers.github_public import GitHubLookupError, is_github_host, lookup_github_profile
 from app.services.tinyfish import TinyFishError, fetch_public_profile
 
 router = APIRouter(tags=["fetch"])
@@ -17,7 +17,7 @@ class FetchBody(BaseModel):
 @router.post("/profile/fetch")
 def fetch_profile(body: FetchBody) -> dict:
     settings = get_settings()
-    if is_github_profile_url(body.url):
+    if is_github_host(body.url):
         try:
             return lookup_github_profile(body.url)
         except GitHubLookupError as exc:

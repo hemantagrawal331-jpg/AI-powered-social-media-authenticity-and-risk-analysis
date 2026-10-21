@@ -37,7 +37,10 @@ def model_status() -> dict:
             "tinyfish": "reads a public profile URL when TINYFISH_API_KEY is set; does not log in",
             "scraping": "not used",
         },
-        "continuous_validation": "Analyst labels are stored via POST /api/model/feedback.",
+        "continuous_validation": "Analyst notes on POST /api/model/feedback are not training labels and are not used to fit the model.",
+        "real_world_validation": "unvalidated_experimental",
+        "real_world_metrics": None,
+        "metrics_scope": "synthetic_holdout_only",
     }
 
 

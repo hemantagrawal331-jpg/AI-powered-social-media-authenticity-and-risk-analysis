@@ -60,6 +60,7 @@ def observation_from_lookup(lookup: dict, *, observed_at: str | None = None) -> 
         raise DatasetError("The lookup has no GitHub login.")
     by_name = {row["name"]: row for row in lookup.get("fields") or []}
     stamp = observed_at or str(lookup.get("retrieved_at") or _now())
+    key = account_key("github", login)
     features = {
         "github_followers": _from_profile_count(profile, "followers"),
         "github_following": _from_profile_count(profile, "following"),
@@ -85,7 +86,8 @@ def observation_from_lookup(lookup: dict, *, observed_at: str | None = None) -> 
         raise DatasetError(violations[0])
     return {
         "schema_version": SCHEMA_VERSION,
-        "account_key": account_key("github", login),
+        "observation_id": hashlib.sha256(f"{SCHEMA_VERSION}:{key}:{stamp}".encode()).hexdigest(),
+        "account_key": key,
         "platform": "github",
         "public_login": login,
         "observed_at": stamp,
@@ -218,6 +220,7 @@ def evaluation_report(observations: list[dict], labels: list[dict]) -> dict:
         "training_performed": False,
         "evaluation_performed": False,
         "metrics": None,
+        "schema_compatibility": schema_compatibility(),
         "reason": None
         if ready
         else (
@@ -225,6 +228,71 @@ def evaluation_report(observations: list[dict], labels: list[dict]) -> dict:
             f"At least {MIN_CONFIRMED_ACCOUNTS} are required before a metric is reported."
         ),
     }
+
+
+def schema_compatibility() -> dict:
+    """The saved 46-feature model expects social activity this GitHub response does not contain."""
+    from app.intelligence.vector import FEATURE_NAMES
+
+    unavailable = [
+        "posts_log",
+        "posts_per_day",
+        "engagement_rate",
+        "engagement_deviation",
+        "likes_comments_ratio",
+        "engagement_cv",
+        "posting_frequency",
+        "caption_duplicate_rate",
+        "hashtag_density",
+        "caption_ttr",
+        "temporal_entropy",
+        "interval_cv",
+        "burstiness",
+        "periodicity",
+        "like_cv",
+        "follower_sample_entropy",
+        "growth_spike",
+        "freq_observed",
+        "verified",
+    ]
+    return {
+        "saved_model_feature_count": len(FEATURE_NAMES),
+        "github_schema": SCHEMA_VERSION,
+        "comparable_when_observed": [
+            "followers_log",
+            "following_log",
+            "account_age_days",
+            "bio_length",
+            "external_links",
+            "age_observed",
+        ],
+        "social_features_without_a_github_source": unavailable,
+        "shared_model_appropriate": False,
+        "recommended_approach": (
+            "Train a separate GitHub model only after enough independently labeled GitHub accounts exist. "
+            "Do not copy public_repos into posts or other social slots."
+        ),
+        "training_performed": False,
+        "evaluation_performed": False,
+        "metrics": None,
+    }
+
+
+def delete_account(observations_path: Path, labels_path: Path, key: str) -> dict:
+    """Remove one account from the local store. Does not call GitHub or the model."""
+    return {
+        "observations_removed": _drop_key(observations_path, key),
+        "labels_removed": _drop_key(labels_path, key),
+    }
+
+
+def _drop_key(path: Path, key: str) -> int:
+    rows = _read_jsonl(path)
+    kept = [row for row in rows if row.get("account_key") != key]
+    removed = len(rows) - len(kept)
+    if removed and path.exists():
+        path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in kept), encoding="utf-8")
+    return removed
 
 
 def _from_profile_count(profile: dict, name: str) -> dict:
