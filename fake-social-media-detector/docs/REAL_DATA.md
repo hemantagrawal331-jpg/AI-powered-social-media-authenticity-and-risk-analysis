@@ -107,6 +107,28 @@ Tests: `backend/tests/test_github_provider.py`, `backend/tests/test_dataset_foun
 
 The saved joblib model is unchanged.
 
+## Collection desk
+
+The page is `/dataset`. It calls the admin routes under `/api/dataset`. Those routes stay locked until the server has `ADMIN_TOKEN`. The token is typed into the page and sent as `Authorization: Bearer`. It is not a `VITE_` variable and it is not written into the frontend bundle. `GITHUB_TOKEN`, when used, stays on the server as well.
+
+A batch accepts at most 5 GitHub usernames or `github.com` user URLs. The page requires a confirmation checkbox before a batch starts. Usernames are validated before any request. Repeated names in the batch, and accounts already stored, are not fetched again. Profiles are requested one at a time. A GitHub 429 stops the rest of the batch and does not retry. A failed fetch is not replaced with a synthetic profile. One process will start at most 30 collection reads in a rolling minute.
+
+The desk writes the same `github-public-v1` observations and the separate label file. An older observation that has a schema, account key, and timestamp but no `observation_id` receives that id from those three fields. That repair does not create a label. `account_age_days` and `website_listed` are shown as derived. `public_repos` stays separate from posts. Likes stay null when GitHub did not send them.
+
+Reviews go through `build_review_record`. Follower count, appearance, a missing badge, a missing fraud report, and a model score are rejected. `unknown` is allowed. Confirmed scam, phishing, and impersonation still need high-quality evidence and an https URL. A bot review records whether harm is claimed. Disagreement is not stored as confirmed.
+
+Export is JSONL or CSV for an authorized caller. JSONL keeps nulls. CSV leaves a missing value empty and records the field status, so a blank cell is not a zero. Exports omit server tokens. Delete requires `confirm=true` and removes that account from the observation file, the label file, and the collection log.
+
+Local files stay in gitignored `data/real/`:
+
+- `observations.jsonl`
+- `labels.jsonl`
+- `collection_log.jsonl`
+
+On Vercel the same routes write under temporary disk. Those rows are not a durable dataset and can disappear when a new instance starts. Set `ADMIN_TOKEN` in the host environment only if you accept that limit. Do not commit the token or the data files.
+
+`GET /api/dataset/readiness` reports label coverage, account-grouped split sizes, and whether any account fell into two splits. It always returns `metrics: null`. Thirty confirmed accounts is a count milestone, not a reliability result. The 46-feature model is not trained from this desk.
+
 ## Known limits
 
 One public GitHub snapshot and zero confirmed labels cannot support a metric or a new model. Instagram and X are not connected. TinyFish does not pass a login wall. GitHub authenticity would not establish Instagram or X authenticity even after a future GitHub evaluation.

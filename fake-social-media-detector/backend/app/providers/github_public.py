@@ -55,6 +55,20 @@ class GitHubLookupError(Exception):
 Transport = Callable[[str], tuple[int, dict]]
 
 
+def parse_github_login(value: str) -> str:
+    """Accept a public login or a github.com user URL. Reject repository paths."""
+    text = (value or "").strip()
+    if not text:
+        raise GitHubLookupError("Enter a GitHub username or profile URL.", 400)
+    if "://" in text or "/" in text or text.lower().startswith("github.com"):
+        if "://" not in text:
+            text = f"https://{text}"
+        return _username_from_url(text)
+    if text.lower() in RESERVED or not USERNAME.match(text):
+        raise GitHubLookupError("That GitHub path is not a public user profile.", 400)
+    return text
+
+
 def is_github_host(url: str) -> bool:
     text = (url or "").strip()
     if "://" not in text:

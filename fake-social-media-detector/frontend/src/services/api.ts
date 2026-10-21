@@ -90,7 +90,113 @@ export const api = {
   ingestUrl: (url: string) => request<Record<string, unknown>>("/api/ingest/url", { method: "POST", body: JSON.stringify({ url }) }),
   fetchPublicProfile: (url: string) =>
     request<PublicProfileFetch>("/api/profile/fetch", { method: "POST", body: JSON.stringify({ url }) }),
+  dataset: (token: string, platform = "", review = "") =>
+    request<DatasetHome>(`/api/dataset?platform=${encodeURIComponent(platform)}&review=${encodeURIComponent(review)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  datasetCollect: (token: string, entries: string[]) =>
+    request<DatasetCollect>("/api/dataset/collect", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ entries, confirm: true }),
+    }),
+  datasetObservation: (token: string, observationId: string) =>
+    request<DatasetDetail>(`/api/dataset/observations/${observationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  datasetReview: (token: string, body: Record<string, string>) =>
+    request<{ result: string; review_state: string; metrics: null }>("/api/dataset/reviews", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    }),
+  datasetDelete: (token: string, accountKey: string) =>
+    request<{ observations_removed: number; labels_removed: number }>(
+      `/api/dataset/accounts/${accountKey}?confirm=true`,
+      { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+    ),
+  datasetReadiness: (token: string) =>
+    request<DatasetReadiness>("/api/dataset/readiness", { headers: { Authorization: `Bearer ${token}` } }),
+  datasetExport: async (token: string, fmt: "jsonl" | "csv") => {
+    const response = await fetch(`${BASE}/api/dataset/export?fmt=${fmt}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(typeof payload.detail === "string" ? payload.detail : `Export failed (${response.status})`);
+    }
+    return response.blob();
+  },
 };
+
+export interface DatasetHome {
+  observations: DatasetRow[];
+  summary: DatasetSummary;
+}
+
+export interface DatasetRow {
+  observation_id: string;
+  account_key: string;
+  platform: string;
+  public_login: string;
+  observed_at: string;
+  schema_version: string;
+  source: string;
+  review_state: string;
+}
+
+export interface DatasetSummary {
+  observations: number;
+  unique_accounts: number;
+  by_platform: Record<string, number>;
+  by_review_state: Record<string, number>;
+  by_label: Record<string, number>;
+  unreviewed: number;
+  unknown: number;
+  collection_log: Record<string, number>;
+  observed_from: string | null;
+  observed_to: string | null;
+  schema_versions: string[];
+  provenance_complete: number;
+  demos_included: boolean;
+  durable: boolean;
+  storage_note: string;
+  real_world_metrics: null;
+}
+
+export interface DatasetCollect {
+  counts: Record<string, number>;
+  results: { input: string; result: string; detail?: string; observation_id?: string }[];
+  stored_profiles_are_labels: boolean;
+  metrics: null;
+}
+
+export interface DatasetField {
+  name: string;
+  status: string;
+  value: unknown;
+  note?: string;
+}
+
+export interface DatasetDetail {
+  observation: DatasetRow;
+  fields: { observed: DatasetField[]; unavailable: DatasetField[]; derived: DatasetField[] };
+  reviews: Record<string, unknown>[];
+  review_state: string;
+  collection_is_not_a_label: boolean;
+}
+
+export interface DatasetReadiness {
+  confirmed_accounts: number;
+  count_milestone: number;
+  count_milestone_met: boolean;
+  metrics: null;
+  real_world_metrics: null;
+  evaluation_performed: boolean;
+  training_performed: boolean;
+  split_leakage: boolean;
+  note: string;
+}
 
 export function persistFetch(data: PublicProfileFetch | null) {
   if (!data) {

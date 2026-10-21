@@ -3,6 +3,7 @@ import { Layout } from "./components/layout/Layout";
 import { About } from "./pages/About";
 import { Analyzer } from "./pages/Analyzer";
 import { Compare } from "./pages/Compare";
+import { DatasetDesk } from "./pages/DatasetDesk";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { ModelLab } from "./pages/ModelLab";
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/history" element={<History />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/model" element={<ModelLab />} />
+        <Route path="/dataset" element={<DatasetDesk />} />
         <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

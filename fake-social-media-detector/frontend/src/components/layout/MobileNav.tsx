@@ -11,6 +11,7 @@ const links = [
   ["/history", "History"],
   ["/reports", "Reports"],
   ["/model", "Model lab"],
+  ["/dataset", "Dataset"],
   ["/about", "About"],
 ] as const;
 

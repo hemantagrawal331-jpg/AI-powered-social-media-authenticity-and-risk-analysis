@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     history_limit: int = 200
     tinyfish_api_key: str = ""
     tinyfish_timeout_seconds: int = 75
+    admin_token: str = ""
 
     model_config = {
         "env_file": (
