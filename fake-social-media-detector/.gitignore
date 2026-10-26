@@ -11,7 +11,9 @@ backend/reports/
 node_modules/
 frontend/dist/
 frontend/.env
+frontend/.env.local
 .env
+.env.local
 .DS_Store
 *.egg-info/
 .idea/

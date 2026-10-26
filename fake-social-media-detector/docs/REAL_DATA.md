@@ -135,6 +135,8 @@ The history database is SQLite. On Vercel that file is on temporary disk, so it 
 
 Real observations use `DATASET_DATABASE_URL`. A `postgres://` or `postgresql://` URL is the only store marked durable. The driver is `psycopg`. `ADMIN_TOKEN` and the database URL stay in the server environment. Neither is a `VITE_` variable.
 
+The intended database is the Supabase Postgres project. The dashboard snippet for Next.js (`@supabase/ssr`, `utils/supabase/*`, and a `todos` page) does not apply to this Vite and FastAPI app, and those files are not part of the dataset desk. `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` identify the project. The publishable key is not a Postgres password, is not sent to the browser, and does not open the dataset tables. Copy the connection string from Supabase → Project Settings → Database → Connection string → URI into `DATASET_DATABASE_URL`.
+
 If that URL is missing on the hosted site, dataset routes return HTTP 503 and do not write to temporary disk. Local development with no URL keeps using gitignored JSONL under `data/real/`. The desk labels that mode as development storage, not production persistence.
 
 Tables, created on first connection: `dataset_observations`, `dataset_labels`, `dataset_collection_log`, `dataset_audit`. Observations and labels are separate. `account_key` is unique. A label signature of account, label type, and evidence source is unique. A confirmed label is not replaced by a different import. Missing likes and posts stay null. Writes that fail roll back.

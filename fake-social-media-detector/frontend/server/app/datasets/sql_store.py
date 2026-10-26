@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Integer, String, Text, UniqueConstraint, create_engine, func, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.pool import NullPool
 
 from app.datasets.collect import partition_features, review_state
 
@@ -92,9 +93,15 @@ class SqlDatasetStore:
         self.durable = is_postgres(url)
         self.backend = "postgresql" if self.durable else "sqlite"
         self.mode = "production" if self.durable else "test"
-        connect_args = {"check_same_thread": False} if self.url.startswith("sqlite") else {"connect_timeout": 3}
+        if self.url.startswith("sqlite"):
+            connect_args = {"check_same_thread": False}
+            pool_kwargs = {}
+        else:
+            # One connection per use. Session and transaction poolers both reject a cached pool.
+            connect_args = {"connect_timeout": 15, "prepare_threshold": None}
+            pool_kwargs = {"poolclass": NullPool}
         try:
-            self.engine = create_engine(self.url, connect_args=connect_args, pool_pre_ping=True)
+            self.engine = create_engine(self.url, connect_args=connect_args, pool_pre_ping=True, **pool_kwargs)
             DatasetBase.metadata.create_all(self.engine)
             with self.engine.connect() as connection:
                 connection.execute(text("SELECT 1"))
